@@ -64,26 +64,23 @@ class Executor(base_executor.BaseExecutor):
         exec_properties.get(standard_component_specs.EXCLUDE_SPLITS_KEY,
                             'null')) or []
     if not isinstance(exclude_splits, list):
-      raise ValueError('exclude_splits in execution properties needs to be a '
-                       'list. Got %s instead.' % type(exclude_splits))
+      raise ValueError(
+          f'exclude_splits in execution properties needs to be a list. Got {type(exclude_splits)} instead.'
+      )
 
-    # Only one schema is generated for all splits.
-    schema = None
     stats_artifact = artifact_utils.get_single_instance(
         input_dict[standard_component_specs.STATISTICS_KEY])
+    schema = None
     for split in artifact_utils.decode_split_names(stats_artifact.split_names):
       if split in exclude_splits:
         continue
       logging.info('Processing schema from statistics for split %s.', split)
       stats = stats_artifact_utils.load_statistics(stats_artifact,
                                                    split).proto()
-      if not schema:
-        schema = tfdv.infer_schema(stats, infer_feature_shape)
-      else:
-        schema = tfdv.update_schema(schema, stats, infer_feature_shape)
+      schema = (tfdv.update_schema(schema, stats, infer_feature_shape)
+                if schema else tfdv.infer_schema(stats, infer_feature_shape))
     if schema is None:
-      raise ValueError('No input splits for stats artifact: %s' %
-                       stats_artifact)
+      raise ValueError(f'No input splits for stats artifact: {stats_artifact}')
 
     output_uri = os.path.join(
         artifact_utils.get_single_uri(

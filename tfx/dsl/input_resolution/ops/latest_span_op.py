@@ -74,14 +74,11 @@ class LatestSpan(
 
     valid_artifacts = ops_utils.get_valid_artifacts(
         input_list, ops_utils.SPAN_AND_VERSION_PROPERTIES)
-    if not valid_artifacts:
-      return []
-
-    return ops_utils.filter_artifacts_by_span(
+    return (ops_utils.filter_artifacts_by_span(
         artifacts=valid_artifacts,
         span_descending=True,
         n=self.n,
         min_span=self.min_span,
         skip_last_n=self.skip_last_n,
         keep_all_versions=self.keep_all_versions,
-    )
+    ) if valid_artifacts else [])

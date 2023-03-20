@@ -43,7 +43,7 @@ class PenguinPipelineKubeflowV2Test(base_test_case.BaseKubeflowV2Test):
 
   def testEndToEndPipelineRun(self):
     """E2E test for pipeline with runtime parameter."""
-    pipeline_name = 'kubeflow-v2-e2e-test-{}'.format(self._test_id)
+    pipeline_name = f'kubeflow-v2-e2e-test-{self._test_id}'
     kubeflow_pipeline = penguin_pipeline_kubeflow.create_pipeline(
         pipeline_name=pipeline_name,
         pipeline_root=self._pipeline_root(pipeline_name),
@@ -97,7 +97,7 @@ class PenguinPipelineKubeflowTest(kubeflow_test_utils.BaseKubeflowTest):
 
   def testEndToEndPipelineRun(self):
     """End-to-end test for pipeline with RuntimeParameter."""
-    pipeline_name = 'kubeflow-v1-e2e-test-{}'.format(self._test_id)
+    pipeline_name = f'kubeflow-v1-e2e-test-{self._test_id}'
     kubeflow_pipeline = penguin_pipeline_kubeflow.create_pipeline(
         pipeline_name=pipeline_name,
         pipeline_root=self._pipeline_root(pipeline_name),

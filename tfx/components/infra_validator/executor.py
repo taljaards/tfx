@@ -92,7 +92,7 @@ def _create_model_server_runner(
         serving_spec=serving_spec
     )
   else:
-    raise NotImplementedError('Invalid serving_platform {}'.format(platform))
+    raise NotImplementedError(f'Invalid serving_platform {platform}')
 
 
 def _convert_to_prediction_log(request: iv_types.Request):
@@ -396,10 +396,9 @@ class Executor(base_executor.BaseExecutor):
       # Check model can be successfully queried.
       if requests:
         client.SendRequests(requests)
-    except Exception:  # pylint: disable=broad-except
+    except Exception:# pylint: disable=broad-except
       logging.exception('Error occurred during infra validation.')
-      maybe_logs = runner.GetLogs()
-      if maybe_logs:
+      if maybe_logs := runner.GetLogs():
         logging.error(
             'Fetching model server logs:\n'
             'BEGIN_MODEL_SERVER_LOG\n'

@@ -61,10 +61,7 @@ class DockerComponentConfig(base_component_config.BaseComponentConfig):
     self.additional_run_args = kwargs
 
   def to_run_args(self):
-    if self.additional_run_args:
-      args = self.additional_run_args.copy()
-    else:
-      args = {}
+    args = self.additional_run_args.copy() if self.additional_run_args else {}
     args.update(privileged=self.privileged)
     if self.environment:
       args.update(environment=self.environment)

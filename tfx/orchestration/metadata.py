@@ -156,8 +156,8 @@ class Metadata:
         return self
 
     raise RuntimeError(
-        'Failed to establish connection to Metadata storage with error: %s' %
-        connection_error)
+        f'Failed to establish connection to Metadata storage with error: {connection_error}'
+    )
 
   def __exit__(self,
                exc_type: Optional[Type[Exception]] = None,
@@ -246,7 +246,7 @@ class Metadata:
       self, type_names: List[str],
       context_id: int) -> Dict[str, List[metadata_store_pb2.Artifact]]:
     """Fetches artifacts given artifact type name and context id."""
-    result = dict((type_name, []) for type_name in type_names)
+    result = {type_name: [] for type_name in type_names}
     all_artifacts_in_context = self.store.get_artifacts_by_context(context_id)
     for type_name in type_names:
       try:
@@ -254,7 +254,7 @@ class Metadata:
         if artifact_type is None:
           raise mlmd.errors.NotFoundError('No type found.')
       except mlmd.errors.NotFoundError:
-        absl.logging.warning('Artifact type %s not registered' % type_name)
+        absl.logging.warning(f'Artifact type {type_name} not registered')
         continue
 
       result[type_name] = [
@@ -301,7 +301,7 @@ class Metadata:
       artifact_type = self.store.get_artifact_type(type_name)
       if not artifact_type:
         raise mlmd.errors.NotFoundError(
-            None, None, 'No artifact type found for %s.' % type_name)
+            None, None, f'No artifact type found for {type_name}.')
     except mlmd.errors.NotFoundError:
       return []
 
@@ -333,7 +333,8 @@ class Metadata:
     ]
     # Gets the candidate artifacts from output events.
     candidate_artifacts = self.store.get_artifacts_by_id(
-        list(set(ev.artifact_id for ev in qualified_output_events)))
+        list({ev.artifact_id
+              for ev in qualified_output_events}))
     # Filters the artifacts that have the right artifact type and state.
     qualified_artifacts = [
         a for a in candidate_artifacts if a.type_id == artifact_type.id and
@@ -386,11 +387,10 @@ class Metadata:
     try:
       existing_execution_type = self.store.get_execution_type(type_name)
       if existing_execution_type is None:
-        raise RuntimeError('Execution type is None for %s.' % type_name)
+        raise RuntimeError(f'Execution type is None for {type_name}.')
       # If exec_properties contains new entries, execution type schema will be
       # updated in MLMD.
-      if all(k in existing_execution_type.properties
-             for k in exec_properties.keys()):
+      if all(k in existing_execution_type.properties for k in exec_properties):
         return existing_execution_type.id
       else:
         raise mlmd.errors.NotFoundError('No qualified execution type found.')
@@ -400,9 +400,9 @@ class Metadata:
           _EXECUTION_TYPE_KEY_STATE] = metadata_store_pb2.STRING
       # TODO(b/172673657): Make property schema registration more explicit to
       # the component author.
-      for k in exec_properties.keys():
-        assert k not in _EXECUTION_TYPE_RESERVED_KEYS, (
-            'execution properties with reserved key %s') % k
+      for k in exec_properties:
+        assert (k not in _EXECUTION_TYPE_RESERVED_KEYS
+                ), f'execution properties with reserved key {k}'
         # TODO(b/172629873): Currently, all execution properties are registered
         # as strings.
         execution_type.properties[k] = metadata_store_pb2.STRING
@@ -430,8 +430,8 @@ class Metadata:
             execution_type=execution_type,
             can_add_fields=True,
             can_omit_fields=True)
-        absl.logging.debug('Registering an execution type with id %s.' %
-                           execution_type_id)
+        absl.logging.debug(
+            f'Registering an execution type with id {execution_type_id}.')
         return execution_type_id
       except mlmd.errors.AlreadyExistsError:
         # The conflict should not happen as all property value type is STRING.
@@ -466,12 +466,7 @@ class Metadata:
     # TODO(ruoyu): Enforce a formal rule for execution schema change.
     for k, v in exec_properties.items():
       # We always convert execution properties to unicode.
-      if isinstance(v, bytes):
-        # Decode byte string into a Unicode string.
-        v = v.decode('utf-8')
-      else:
-        # For all other types, store its string representation.
-        v = str(v)
+      v = v.decode('utf-8') if isinstance(v, bytes) else str(v)
       execution.properties[k].string_value = v
     # We also need to checksum UDF file to identify different binary being
     # used. Do we have a better way to checksum a file than hashlib.md5?
@@ -552,7 +547,7 @@ class Metadata:
         if new_state:
           a.state = new_state
         if a.id and a.id in registered_artifacts_ids:
-          result.append(tuple([a.mlmd_artifact]))
+          result.append((a.mlmd_artifact, ))
         else:
           a.set_mlmd_artifact_type(self._prepare_artifact_type(a.artifact_type))
           result.append(
@@ -594,14 +589,14 @@ class Metadata:
     if not execution.id:
       raise RuntimeError('No id attached to the execution to be updated.')
     events = self.store.get_events_by_execution_ids([execution.id])
-    registered_input_artifact_ids = set(
+    registered_input_artifact_ids = {
         e.artifact_id
-        for e in events
-        if e.type == metadata_store_pb2.Event.INPUT)
-    registered_output_artifact_ids = set(
+        for e in events if e.type == metadata_store_pb2.Event.INPUT
+    }
+    registered_output_artifact_ids = {
         e.artifact_id
-        for e in events
-        if e.type == metadata_store_pb2.Event.OUTPUT)
+        for e in events if e.type == metadata_store_pb2.Event.OUTPUT
+    }
     artifacts_and_events = []
     if input_artifacts:
       artifacts_and_events.extend(
@@ -801,13 +796,14 @@ class Metadata:
     # results.
     context = self.get_pipeline_context(pipeline_info)
     if context is None:
-      absl.logging.warning('Pipeline context not available for %s' %
-                           pipeline_info)
+      absl.logging.warning(f'Pipeline context not available for {pipeline_info}')
       return None
 
     # Step 1: Finds historical executions related to the context in step 0.
-    historical_executions = dict(
-        (e.id, e) for e in self._store.get_executions_by_context(context.id))
+    historical_executions = {
+        e.id: e
+        for e in self._store.get_executions_by_context(context.id)
+    }
 
     # Step 2: Filters historical executions to find those that used all the
     # given inputs as input artifacts. The result of this step is a set of
@@ -843,8 +839,8 @@ class Metadata:
             copy.deepcopy(expected_previous_execution),
             copy.deepcopy(historical_executions[e_id]))
     ]
-    candidate_execution_ids = candidate_execution_ids[
-        0:min(len(candidate_execution_ids), MAX_EXECUTIONS_FOR_CACHE)]
+    candidate_execution_ids = candidate_execution_ids[:min(
+        len(candidate_execution_ids), MAX_EXECUTIONS_FOR_CACHE)]
 
     # Step 4: Traverse all candidates, if the input artifacts of a candidate
     # match given input artifacts, return the output artifacts of that execution
@@ -939,34 +935,33 @@ class Metadata:
     Raises:
       RuntimeError: when no matching execution is found given producer info.
     """
-    producer_execution = None
-    matching_artifact_ids = set()
     # TODO(ruoyu): We need to revisit this when adding support for async
     # execution.
     context = self.get_pipeline_run_context(pipeline_info)
     if context is None:
-      raise RuntimeError('Pipeline run context for %s does not exist' %
-                         pipeline_info)
-    for execution in self.store.get_executions_by_context(context.id):
-      if execution.properties[
-          'component_id'].string_value == producer_component_id:
-        producer_execution = execution
-        break
+      raise RuntimeError(f'Pipeline run context for {pipeline_info} does not exist')
+    producer_execution = next(
+        (execution
+         for execution in self.store.get_executions_by_context(context.id)
+         if execution.properties['component_id'].string_value ==
+         producer_component_id),
+        None,
+    )
     if not producer_execution:
-      raise RuntimeError('Cannot find matching execution with pipeline name %s,'
-                         'run id %s and component id %s' %
-                         (pipeline_info.pipeline_name, pipeline_info.run_id,
-                          producer_component_id))
-    for event in self.store.get_events_by_execution_ids([producer_execution.id
-                                                        ]):
-      if (event.type == metadata_store_pb2.Event.OUTPUT and
-          event.path.steps[0].key == artifact_name):
-        matching_artifact_ids.add(event.artifact_id)
-
+      raise RuntimeError(
+          f'Cannot find matching execution with pipeline name {pipeline_info.pipeline_name},run id {pipeline_info.run_id} and component id {producer_component_id}'
+      )
+    matching_artifact_ids = {
+        event.artifact_id
+        for event in self.store.get_events_by_execution_ids(
+            [producer_execution.id])
+        if (event.type == metadata_store_pb2.Event.OUTPUT
+            and event.path.steps[0].key == artifact_name)
+    }
     # Get relevant artifacts along with their types.
     artifacts_by_id = self.store.get_artifacts_by_id(
         list(matching_artifact_ids))
-    matching_artifact_type_ids = list(set(a.type_id for a in artifacts_by_id))
+    matching_artifact_type_ids = list({a.type_id for a in artifacts_by_id})
     matching_artifact_types = self.store.get_artifact_types_by_id(
         matching_artifact_type_ids)
     artifact_types = dict(
@@ -994,16 +989,8 @@ class Metadata:
     context_type = metadata_store_pb2.ContextType(name=context_type_name)
     for k, t in properties.items():
       context_type.properties[k] = t
-    # Types can be evolved by adding new fields in newer releases.
-    # Here when upserting types:
-    # a) we enable `can_add_fields` so that type updates made in the current
-    #    release are backward compatible with older release;
-    # b) we enable `can_omit_fields` so that the current release is forward
-    #    compatible with any type updates made by future release.
-    context_type_id = self.store.put_context_type(
+    return self.store.put_context_type(
         context_type, can_add_fields=True, can_omit_fields=True)
-
-    return context_type_id
 
   def _prepare_context(
       self,
@@ -1022,8 +1009,9 @@ class Metadata:
     }
     context_type_id = self._register_context_type_if_not_exist(
         context_type_name,
-        dict(
-            (k, property_type_mapping[type(v)]) for k, v in properties.items()))
+        {k: property_type_mapping[type(v)]
+         for k, v in properties.items()},
+    )
 
     context = metadata_store_pb2.Context(
         type_id=context_type_id, name=context_name)
@@ -1035,7 +1023,7 @@ class Metadata:
       elif isinstance(v, float):
         context.properties[k].double_value = v
       else:
-        raise RuntimeError('Unexpected property type: %s' % type(v))
+        raise RuntimeError(f'Unexpected property type: {type(v)}')
     return context
 
   def _register_context_if_not_exist(
@@ -1066,8 +1054,7 @@ class Metadata:
       absl.logging.debug('Run context %s already exists.', context_name)
       context = self.store.get_context_by_type_and_name(context_type_name,
                                                         context_name)
-      assert context is not None, 'Run context is missing for %s.' % (
-          context_name)
+      assert context is not None, f'Run context is missing for {context_name}.'
 
     absl.logging.debug('ID of run context %s is %s.', context_name, context.id)
     return context
@@ -1134,15 +1121,13 @@ class Metadata:
     Returns:
       a list (of size one or two) of context.
     """
-    # Gets the pipeline level context.
-    result = []
     pipeline_context = self._register_context_if_not_exist(
         context_type_name=_CONTEXT_TYPE_PIPELINE,
         context_name=pipeline_info.pipeline_context_name,
         properties={
             _CONTEXT_TYPE_KEY_PIPELINE_NAME: pipeline_info.pipeline_name
         })
-    result.append(pipeline_context)
+    result = [pipeline_context]
     absl.logging.debug('Pipeline context [%s : %s]',
                        pipeline_info.pipeline_context_name, pipeline_context.id)
     # If run id exists, gets the pipeline run level context.

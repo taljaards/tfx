@@ -207,9 +207,7 @@ def _compile_input_spec(
       ctx.name.field_value.string_value = channel.pipeline_run_id
 
     # TODO(b/265337852) Change project_name to pipeline_name.
-    pipeline_asset_name = (
-        channel.project_name if channel.project_name else channel.pipeline_name
-    )
+    pipeline_asset_name = channel.project_name or channel.pipeline_name
     if pipeline_ctx.pipeline.platform_config:
       project_config = (
           pipeline_ctx.pipeline.platform_config.project_platform_config)

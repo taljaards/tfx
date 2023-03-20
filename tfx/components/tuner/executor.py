@@ -70,16 +70,13 @@ def write_best_hyperparameters(
   io_utils.write_string_file(best_hparams_path, json.dumps(best_hparams_config))
   logging.info('Best Hyperparameters are written to %s.', best_hparams_path)
 
-  # Saves tuner results in pandas `records` format (list of rows).
-  results = []
-  for trial_obj in tuner.oracle.get_best_trials(tuner.oracle.max_trials):
-    if trial_obj.status == trial.TrialStatus.COMPLETED and trial_obj.hyperparameters.values:
-      results.append({
-          'trial_id': trial_obj.trial_id,
-          'score': trial_obj.score,
-          **trial_obj.hyperparameters.values
-      })
-
+  results = [{
+      'trial_id': trial_obj.trial_id,
+      'score': trial_obj.score,
+      **trial_obj.hyperparameters.values,
+  } for trial_obj in tuner.oracle.get_best_trials(tuner.oracle.max_trials)
+             if trial_obj.status == trial.TrialStatus.COMPLETED
+             and trial_obj.hyperparameters.values]
   tuner_results_path = os.path.join(
       artifact_utils.get_single_uri(
           output_dict[standard_component_specs.TUNER_RESULTS_KEY]),

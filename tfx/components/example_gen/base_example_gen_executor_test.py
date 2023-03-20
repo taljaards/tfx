@@ -34,10 +34,11 @@ def _create_tf_example_records(n,
   has_empty = exec_properties.get('has_empty', True)
 
   for i in range(n):
-    feature = {}
-    feature['i'] = tf.train.Feature(
-    ) if i % 10 == 0 and has_empty else tf.train.Feature(
-        int64_list=tf.train.Int64List(value=[i]))
+    feature = {
+        'i':
+        tf.train.Feature() if i % 10 == 0 and has_empty else tf.train.Feature(
+            int64_list=tf.train.Int64List(value=[i]))
+    }
     feature['f'] = tf.train.Feature(
     ) if i % 10 == 0 and has_empty else tf.train.Feature(
         float_list=tf.train.FloatList(value=[float(i)]))
@@ -46,8 +47,7 @@ def _create_tf_example_records(n,
         bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(str(i))]))
 
     if exec_properties.get('sequence_example', False):
-      feature_list = {}
-      feature_list['list'] = tf.train.FeatureList(feature=[feature['s']])
+      feature_list = {'list': tf.train.FeatureList(feature=[feature['s']])}
       records.append(
           tf.train.SequenceExample(
               context=tf.train.Features(feature=feature),
@@ -64,11 +64,8 @@ def _create_parquet_records(n, exec_properties) -> Iterable[Dict[str, Any]]:
   has_empty = exec_properties.get('has_empty', True)
 
   for i in range(n):
-    feature = {}
     if i % 10 != 0 or not has_empty:
-      feature['i'] = i
-      feature['f'] = float(i)
-      feature['s'] = str(i)
+      feature = {'i': i, 'f': float(i), 's': str(i)}
       records.append(feature)
 
   exec_properties['pyarrow_schema'] = pa.schema([

@@ -84,9 +84,7 @@ def _get_test_cases_params(
 ) -> List[Dict[str, Any]]:
   result = []
   for module in pipeline_modules:
-    testcase_name_segments = [module.__name__.rpartition(".")[-1]]
-    # TODO(b/256081156) Clean up the "input_v2" suffix.
-    testcase_name_segments.append("input_v2")
+    testcase_name_segments = [module.__name__.rpartition(".")[-1], "input_v2"]
     testcase_name = "_".join(testcase_name_segments)
     golden_filename = f"{testcase_name}_ir.pbtxt"
     result.append(

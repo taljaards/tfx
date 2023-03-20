@@ -58,5 +58,6 @@ def find_component_launch_info(
       if component_launcher_class.can_launch(component.executor_spec,
                                              component_config):
         return (component_launcher_class, component_config)
-  raise RuntimeError('No launcher info can be found for component "%s".' %
-                     component.component_id)
+  raise RuntimeError(
+      f'No launcher info can be found for component "{component.component_id}".'
+  )

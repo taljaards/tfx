@@ -98,8 +98,10 @@ def _make_trained_model(train_data: tf.data.Dataset,
 
   rng, init_rng = jax.random.split(rng)
   # Initialize with some fake data of the proper shape.
-  init_val = dict((feature, jnp.array([[1.]], dtype=jnp.float32))
-                  for feature in _FEATURE_KEYS_XF)
+  init_val = {
+      feature: jnp.array([[1.0]], dtype=jnp.float32)
+      for feature in _FEATURE_KEYS_XF
+  }
   model = _FlaxPenguinModel()
   params = model.init(init_rng, init_val)['params']
 

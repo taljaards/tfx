@@ -162,7 +162,7 @@ class Executor(tfx_pusher_executor.Executor):
       query_job = client.query(query)
       query_job.result()  # Waits for the query to finish
     except Exception as e:
-      raise RuntimeError('BigQuery ML Push failed: {}'.format(e)) from e
+      raise RuntimeError(f'BigQuery ML Push failed: {e}') from e
 
     logging.info('Successfully deployed model %s serving from %s', bq_model_uri,
                  model_path)

@@ -51,9 +51,8 @@ def replace_executor_with_stub(pipeline: pipeline_pb2.Pipeline,
   deployment_config = pipeline_pb2.IntermediateDeploymentConfig()
   if not pipeline.deployment_config.Unpack(deployment_config):
     raise NotImplementedError(
-        'Unexpected pipeline.deployment_config type "{}". Currently only '
-        'IntermediateDeploymentConfig is supported.'.format(
-            pipeline.deployment_config.type_url))
+        f'Unexpected pipeline.deployment_config type "{pipeline.deployment_config.type_url}". Currently only IntermediateDeploymentConfig is supported.'
+    )
 
   for component_id in deployment_config.executor_specs:
     if component_id not in test_component_ids:
@@ -62,23 +61,24 @@ def replace_executor_with_stub(pipeline: pipeline_pb2.Pipeline,
           executable_spec_pb2.PythonClassExecutableSpec.DESCRIPTOR):
         stub_executor_class_spec = executor_spec.ExecutorClassSpec(
             base_stub_executor.BaseStubExecutor)
-        stub_executor_class_spec.add_extra_flags(
-            (base_stub_executor.TEST_DATA_DIR_FLAG + '=' + test_data_dir,
-             base_stub_executor.COMPONENT_ID_FLAG + '=' + component_id))
+        stub_executor_class_spec.add_extra_flags((
+            f'{base_stub_executor.TEST_DATA_DIR_FLAG}={test_data_dir}',
+            f'{base_stub_executor.COMPONENT_ID_FLAG}={component_id}',
+        ))
         stub_executor_spec = stub_executor_class_spec.encode()
         executable_spec.Pack(stub_executor_spec)
       elif executable_spec.Is(
           executable_spec_pb2.BeamExecutableSpec.DESCRIPTOR):
         stub_beam_executor_spec = executor_spec.BeamExecutorSpec(
             base_stub_executor.BaseStubExecutor)
-        stub_beam_executor_spec.add_extra_flags(
-            (base_stub_executor.TEST_DATA_DIR_FLAG + '=' + test_data_dir,
-             base_stub_executor.COMPONENT_ID_FLAG + '=' + component_id))
+        stub_beam_executor_spec.add_extra_flags((
+            f'{base_stub_executor.TEST_DATA_DIR_FLAG}={test_data_dir}',
+            f'{base_stub_executor.COMPONENT_ID_FLAG}={component_id}',
+        ))
         stub_executor_spec = stub_beam_executor_spec.encode()
         executable_spec.Pack(stub_executor_spec)
       else:
         raise NotImplementedError(
-            'Unexpected executable_spec type "{}". Currently only '
-            'PythonClassExecutableSpec and BeamExecutorSpec is supported.'
-            .format(executable_spec.type_url))
+            f'Unexpected executable_spec type "{executable_spec.type_url}". Currently only PythonClassExecutableSpec and BeamExecutorSpec is supported.'
+        )
   pipeline.deployment_config.Pack(deployment_config)

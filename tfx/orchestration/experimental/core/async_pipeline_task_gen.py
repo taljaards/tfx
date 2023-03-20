@@ -95,9 +95,8 @@ class _Generator:
     pipeline = pipeline_state.pipeline
     if pipeline.execution_mode != pipeline_pb2.Pipeline.ExecutionMode.ASYNC:
       raise ValueError(
-          'AsyncPipelineTaskGenerator should be instantiated with a pipeline '
-          'proto having execution mode `ASYNC`, not `{}`'.format(
-              pipeline.execution_mode))
+          f'AsyncPipelineTaskGenerator should be instantiated with a pipeline proto having execution mode `ASYNC`, not `{pipeline.execution_mode}`'
+      )
     self._pipeline_state = pipeline_state
     self._pipeline = pipeline
     self._is_task_id_tracked_fn = is_task_id_tracked_fn
@@ -145,16 +144,16 @@ class _Generator:
       # For mixed service nodes, we ensure node services and check service
       # status; the node is aborted if its service jobs have failed.
       service_status = self._ensure_node_services_if_mixed(node.node_info.id)
-      if service_status is not None:
-        if service_status != service_jobs.ServiceStatus.RUNNING:
-          error_msg = f'associated service job failed; node uid: {node_uid}'
-          result.append(
-              task_lib.UpdateNodeStateTask(
-                  node_uid=node_uid,
-                  state=pstate.NodeState.FAILED,
-                  status=status_lib.Status(
-                      code=status_lib.Code.UNKNOWN, message=error_msg)))
-          continue
+      if (service_status is not None
+          and service_status != service_jobs.ServiceStatus.RUNNING):
+        error_msg = f'associated service job failed; node uid: {node_uid}'
+        result.append(
+            task_lib.UpdateNodeStateTask(
+                node_uid=node_uid,
+                state=pstate.NodeState.FAILED,
+                status=status_lib.Status(
+                    code=status_lib.Code.UNKNOWN, message=error_msg)))
+        continue
 
       # If a task for the node is already tracked by the task queue, it need
       # not be considered for generation again.
@@ -195,44 +194,39 @@ class _Generator:
     # TODO(b/239858201) Too many executions may have performance issue, it is
     # better to limit the number of executions.
     executions = task_gen_utils.get_executions(metadata_handler, node)
-    oldest_active_execution = task_gen_utils.get_oldest_active_execution(
-        executions)
-    if oldest_active_execution:
-      if backfill_token:
-        if (
-            oldest_active_execution.custom_properties[
-                _BACKFILL_TOKEN
-            ].string_value
-            != backfill_token
-        ):
-          logging.warning(
-              (
-                  'Node %s is in backfill mode, but there are active executions'
-                  ' that are not for backfill token %s. Oldest active execution'
-                  ' was: %s. Aborting backfill and setting node to STOPPED'
-                  ' state'
-              ),
-              node.node_info.id,
-              backfill_token,
-              oldest_active_execution,
-          )
-          result.append(
-              task_lib.UpdateNodeStateTask(
-                  node_uid=node_uid,
-                  state=pstate.NodeState.STOPPED,
-                  status=status_lib.Status(
-                      code=status_lib.Code.FAILED_PRECONDITION,
-                      message=(
-                          f'Node {node.node_info.id} has active executions that'
-                          f' are not for backfill token {backfill_token}.'
-                          ' Oldest active execution was'
-                          f' {oldest_active_execution}'
-                      ),
-                  ),
-                  backfill_token='',
-              )
-          )
-          return []
+    if oldest_active_execution := task_gen_utils.get_oldest_active_execution(
+        executions):
+      if backfill_token and (
+          oldest_active_execution.custom_properties[_BACKFILL_TOKEN].string_value
+          != backfill_token):
+        logging.warning(
+            (
+                'Node %s is in backfill mode, but there are active executions'
+                ' that are not for backfill token %s. Oldest active execution'
+                ' was: %s. Aborting backfill and setting node to STOPPED'
+                ' state'
+            ),
+            node.node_info.id,
+            backfill_token,
+            oldest_active_execution,
+        )
+        result.append(
+            task_lib.UpdateNodeStateTask(
+                node_uid=node_uid,
+                state=pstate.NodeState.STOPPED,
+                status=status_lib.Status(
+                    code=status_lib.Code.FAILED_PRECONDITION,
+                    message=(
+                        f'Node {node.node_info.id} has active executions that'
+                        f' are not for backfill token {backfill_token}.'
+                        ' Oldest active execution was'
+                        f' {oldest_active_execution}'
+                    ),
+                ),
+                backfill_token='',
+            )
+        )
+        return []
 
       with mlmd_state.mlmd_execution_atomic_op(
           mlmd_handle=self._mlmd_handle,
@@ -240,17 +234,19 @@ class _Generator:
           on_commit=event_observer.make_notify_execution_state_change_fn(
               node_uid)) as execution:
         execution.last_known_state = metadata_store_pb2.Execution.RUNNING
-      result.append(
+      result.extend((
           task_lib.UpdateNodeStateTask(
               node_uid=node_uid,
               state=pstate.NodeState.RUNNING,
               backfill_token=backfill_token,
-          )
-      )
-      result.append(
-          task_gen_utils.generate_task_from_execution(self._mlmd_handle,
-                                                      self._pipeline, node,
-                                                      oldest_active_execution))
+          ),
+          task_gen_utils.generate_task_from_execution(
+              self._mlmd_handle,
+              self._pipeline,
+              node,
+              oldest_active_execution,
+          ),
+      ))
       return result
 
     with self._pipeline_state:
@@ -272,17 +268,10 @@ class _Generator:
       )
 
     if backfill_token:
-      # If we are backfilling, we only want to do input resolution once,
-      # and register the executions once. To check if we've already registered
-      # the executions, we check for the existence of executions with the
-      # backfill token. Note that this can be incorrect in rare cases until
-      # b/266014070 is resolved.
-      backfill_executions = [
-          e
-          for e in executions
+      if backfill_executions := [
+          e for e in executions
           if e.custom_properties[_BACKFILL_TOKEN].string_value == backfill_token
-      ]
-      if backfill_executions:
+      ]:
         logging.info(
             'Backfill of node %s is complete. Setting node to STOPPED state',
             node.node_info.id,
@@ -412,14 +401,12 @@ class _Generator:
         self._pipeline.execution_mode)
     output_artifacts = outputs_resolver.generate_output_artifacts(execution.id)
     outputs_utils.make_output_dirs(output_artifacts)
-    result.append(
+    result.extend((
         task_lib.UpdateNodeStateTask(
             node_uid=node_uid,
             state=pstate.NodeState.RUNNING,
             backfill_token=backfill_token,
-        )
-    )
-    result.append(
+        ),
         task_lib.ExecNodeTask(
             node_uid=node_uid,
             execution_id=execution.id,
@@ -429,10 +416,12 @@ class _Generator:
             output_artifacts=output_artifacts,
             executor_output_uri=outputs_resolver.get_executor_output_uri(
                 execution.id),
-            stateful_working_dir=outputs_resolver
-            .get_stateful_working_directory(execution.id),
+            stateful_working_dir=outputs_resolver.get_stateful_working_directory(
+                execution.id),
             tmp_dir=outputs_resolver.make_tmp_dir(execution.id),
-            pipeline=self._pipeline))
+            pipeline=self._pipeline,
+        ),
+    ))
     return result
 
   def _ensure_node_services_if_pure(

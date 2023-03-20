@@ -154,7 +154,7 @@ def run_fn(fn_args: tfx.components.FnArgs):
     # from the pipeline. User can also inline the hyperparameters directly in
     # _build_keras_model.
     hparams = _get_hyperparameters()
-  absl.logging.info('HyperParameters for training: %s' % hparams.get_config())
+  absl.logging.info(f'HyperParameters for training: {hparams.get_config()}')
 
   mirrored_strategy = tf.distribute.MirroredStrategy()
   with mirrored_strategy.scope():

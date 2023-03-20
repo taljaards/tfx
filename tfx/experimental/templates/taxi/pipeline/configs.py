@@ -16,6 +16,7 @@
 This file defines environments for a TFX taxi pipeline.
 """
 
+
 import os  # pylint: disable=unused-import
 
 # TODO(b/149347293): Move more TFX CLI flags into python configuration.
@@ -40,7 +41,7 @@ except ImportError:
 # when running a pipeline with Kubeflow Pipeline on GCP or when running a job
 # using Dataflow. Default is '<gcp_project_name>-kubeflowpipelines-default'.
 # This bucket is created automatically when you deploy KFP from marketplace.
-GCS_BUCKET_NAME = GOOGLE_CLOUD_PROJECT + '-kubeflowpipelines-default'
+GCS_BUCKET_NAME = f'{GOOGLE_CLOUD_PROJECT}-kubeflowpipelines-default'
 
 # TODO(step 8,step 9): (Optional) Set your region to use GCP services including
 #                      BigQuery, Dataflow and Cloud AI Platform.

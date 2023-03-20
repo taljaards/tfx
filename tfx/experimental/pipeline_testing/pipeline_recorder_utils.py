@@ -35,13 +35,12 @@ def get_component_id_from_execution(
       compiler_constants.NODE_CONTEXT_TYPE_NAME)
   node_contexts = [c for c in contexts if c.type_id == node_context_type.id]
   if len(node_contexts) != 1:
-    raise ValueError(
-        'Cannot find relevant context for execution:{}'.format(execution))
+    raise ValueError(f'Cannot find relevant context for execution:{execution}')
   node_context = node_contexts[0]
   if '.' not in node_context.name:
     raise ValueError(
-        'Unexpected name of the node_context:{} for execution({})'.format(
-            node_context, execution))
+        f'Unexpected name of the node_context:{node_context} for execution({execution})'
+    )
   return node_context.name.split('.', 1)[1]
 
 
@@ -196,8 +195,7 @@ def record_pipeline(output_dir: str,
       if run_id in execution_dict:
         executions = execution_dict[run_id]
       else:
-        raise ValueError(
-            'run_id {} is not recorded in the MLMD metadata'.format(run_id))
+        raise ValueError(f'run_id {run_id} is not recorded in the MLMD metadata')
 
     for src_uri, dest_uri in _get_paths(metadata_connection, executions,
                                         output_dir):

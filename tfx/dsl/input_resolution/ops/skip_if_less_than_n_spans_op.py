@@ -52,10 +52,7 @@ class SkipIfLessThanNSpans(
     Raises:
       SkipSignal if the artifacts have less than n unique spans.
     """
-    spans = set()
-    for artifact in input_list:
-      spans.add(artifact.span)
-
+    spans = {artifact.span for artifact in input_list}
     if self.n >= 0 and len(spans) < self.n:
       raise exceptions.SkipSignal(
           f'[SkipIfLessThanNSpans] len(spans): {len(spans)} < N: {self.n}, '

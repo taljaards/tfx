@@ -520,7 +520,8 @@ class PlaceholderTest(tf.test.TestCase):
     a = ph.output('model')
     b = a.property('bar')
     self._assert_placeholder_pb_equal_and_deepcopyable(
-        '1' + a.uri + '2' + a.property('foo') + '3' + b, """
+        f'1{a.uri}2' + a.property('foo') + '3' + b,
+        """
         operator {
           concat_op {
             expressions {
@@ -595,7 +596,8 @@ class PlaceholderTest(tf.test.TestCase):
               }
             }
           }
-        }""")
+        }""",
+    )
 
   def testJoinPlaceholders(self):
     a = ph.output('model').uri

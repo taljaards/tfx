@@ -63,7 +63,7 @@ def get_fn(exec_properties: Dict[str, Any], fn_name: str) -> Callable[..., Any]:
           exec_properties[_MODULE_FILE_KEY], fn_name)
   elif has_fn:
     fn_path_split = exec_properties[fn_name].split('.')
-    return import_utils.import_func_from_module('.'.join(fn_path_split[0:-1]),
+    return import_utils.import_func_from_module('.'.join(fn_path_split[:-1]),
                                                 fn_path_split[-1])
   else:
     raise ValueError(
@@ -101,9 +101,7 @@ setuptools.setup(
 
 def should_package_user_modules():
   """Whether to package user modules in the current execution environment."""
-  if os.environ.get('UNSUPPORTED_DO_NOT_PACKAGE_USER_MODULES'):
-    return False
-  return True
+  return not os.environ.get('UNSUPPORTED_DO_NOT_PACKAGE_USER_MODULES')
 
 
 class UserModuleFilePipDependency(base_component._PipDependencyFuture):  # pylint: disable=protected-access
@@ -206,12 +204,10 @@ def package_user_module_file(instance_name: str, module_path: str,
 
   user_module_dir, module_file_name = os.path.split(module_path)
   user_module_name = re.sub(r'\.py$', '', module_file_name)
-  source_files = []
-
-  # Discover all Python source files in this directory for inclusion.
-  for file_name in os.listdir(user_module_dir):
-    if file_name.endswith('.py'):
-      source_files.append(file_name)
+  source_files = [
+      file_name for file_name in os.listdir(user_module_dir)
+      if file_name.endswith('.py')
+  ]
   module_names = []
   for file_name in source_files:
     if file_name in (_EPHEMERAL_SETUP_PY_FILE_NAME, '__init__.py'):
@@ -261,7 +257,7 @@ def package_user_module_file(instance_name: str, module_path: str,
   # Copy wheel file atomically to wheel staging directory.
   dist_wheel_directory = os.path.join(pipeline_root, '_wheels')
   dist_file_path = os.path.join(dist_wheel_directory, dist_files[0])
-  temp_dist_file_path = dist_file_path + '.tmp'
+  temp_dist_file_path = f'{dist_file_path}.tmp'
   fileio.makedirs(dist_wheel_directory)
   fileio.copy(build_dist_file_path, temp_dist_file_path, overwrite=True)
   fileio.rename(temp_dist_file_path, dist_file_path, overwrite=True)
@@ -271,8 +267,8 @@ def package_user_module_file(instance_name: str, module_path: str,
 
   # Encode the user module key as a specification of a user module name within
   # a packaged wheel path.
-  assert '@' not in user_module_name, ('Unexpected invalid module name: ' +
-                                       user_module_name)
+  assert ('@' not in user_module_name
+          ), f'Unexpected invalid module name: {user_module_name}'
   user_module_path = f'{user_module_name}@{dist_file_path}'
   logging.info('Full user module path is %r', user_module_path)
 
@@ -281,11 +277,10 @@ def package_user_module_file(instance_name: str, module_path: str,
 
 def decode_user_module_key(user_module_key: str) -> Tuple[str, List[str]]:
   """Decode the given user module key into module path and pip dependencies."""
-  if user_module_key and '@' in user_module_key:
-    user_module_name, dist_file_path = user_module_key.split('@', maxsplit=1)
-    return user_module_name, [dist_file_path]
-  else:
+  if not user_module_key or '@' not in user_module_key:
     return user_module_key, []
+  user_module_name, dist_file_path = user_module_key.split('@', maxsplit=1)
+  return user_module_name, [dist_file_path]
 
 
 class TempPipInstallContext:

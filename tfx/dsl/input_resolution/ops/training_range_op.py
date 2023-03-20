@@ -53,30 +53,16 @@ def training_range(store: Any, model: types.Artifact) -> List[types.Artifact]:
     List of Examples artifacts if found, else empty list. We intentionally don't
     raise SkipSignal, such that the caller can decide to raise it or not.
   """
-  # In MLMD, an Examples and Model are related by:
-  #
-  #          Event 1           Event 2
-  # Examples ------> Execution ------> Model
-  #
-  # For a single Model, there may be many parent Examples it was trained on.
-
-  # TODO(kshivvy): Support querying multiple Model ids at once, to reduce the
-  # number of round trip MLMD queries. This will be useful for resolving inputs
-  # of a span driven evaluator.
-
-  # Get all Executions associated with creating the Model.
-  execution_ids = set()
-  for event in store.get_events_by_artifact_ids([model.id]):
-    if event_lib.is_valid_output_event(event):
-      execution_ids.add(event.execution_id)
-
-  # Get all artifact ids associated with an INPUT Event in each Execution.
-  # These ids correspond to parent artifacts of the Model.
-  parent_artifact_ids = set()
-  for event in store.get_events_by_execution_ids(execution_ids):
-    if event_lib.is_valid_input_event(event):
-      parent_artifact_ids.add(event.artifact_id)
-
+  execution_ids = {
+      event.execution_id
+      for event in store.get_events_by_artifact_ids([model.id])
+      if event_lib.is_valid_output_event(event)
+  }
+  parent_artifact_ids = {
+      event.artifact_id
+      for event in store.get_events_by_execution_ids(execution_ids)
+      if event_lib.is_valid_input_event(event)
+  }
   # Get the type ids of the parent artifacts.
   type_ids = set()
   artifact_by_artifact_id = {}
@@ -127,7 +113,4 @@ class TrainingRange(
 
     examples = training_range(self.context.store, model)
 
-    if not examples:
-      return []
-
-    return examples
+    return examples or []

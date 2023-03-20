@@ -58,10 +58,7 @@ def _extract_func_args(
       input_list = input_dict.get(name, [])
       if len(input_list) == 1:
         result[name] = input_list[0]
-      elif not input_list and name in arg_defaults:
-        # Do not pass the missing optional input.
-        pass
-      else:
+      elif input_list or name not in arg_defaults:
         raise ValueError(
             ('Expected input %r to %s to be a singleton ValueArtifact channel '
              '(got %s instead).') % (name, obj, input_list))
@@ -77,20 +74,14 @@ def _extract_func_args(
       input_list = input_dict.get(name, [])
       if len(input_list) == 1:
         result[name] = input_list[0].value
-      elif not input_list and name in arg_defaults:
-        # Do not pass the missing optional input.
-        pass
-      else:
+      elif input_list or name not in arg_defaults:
         raise ValueError(
             ('Expected input %r to %s to be a singleton ValueArtifact channel '
              '(got %s instead).') % (name, obj, input_list))
     elif arg_format == function_parser.ArgFormats.PARAMETER:
       if name in exec_properties:
         result[name] = exec_properties[name]
-      elif name in arg_defaults:
-        # Do not pass the missing optional input.
-        pass
-      else:
+      elif name not in arg_defaults:
         raise ValueError(
             ('Expected non-optional parameter %r of %s to be provided, but no '
              'value was passed.') % (name, obj))
@@ -150,10 +141,11 @@ class _SimpleComponent(base_component.BaseComponent):
 
   def __init__(self, *unused_args, **kwargs):
     if unused_args:
-      raise ValueError(('%s expects arguments to be passed as keyword '
-                        'arguments') % (self.__class__.__name__,))
-    spec_kwargs = {}
+      raise ValueError(
+          f'{self.__class__.__name__} expects arguments to be passed as keyword arguments'
+      )
     unseen_args = set(kwargs.keys())
+    spec_kwargs = {}
     for key, channel_parameter in self.SPEC_CLASS.INPUTS.items():
       if key not in kwargs and not channel_parameter.optional:
         raise ValueError('%s expects input %r to be a Channel of type %s.' %
@@ -176,9 +168,8 @@ class _SimpleComponent(base_component.BaseComponent):
       artifact = channel_parameter.type()
       spec_kwargs[key] = channel.OutputChannel(artifact.type, self,
                                                key).set_artifacts([artifact])
-      json_compat_typehint = getattr(channel_parameter, '_JSON_COMPAT_TYPEHINT',
-                                     None)
-      if json_compat_typehint:
+      if json_compat_typehint := getattr(channel_parameter,
+                                         '_JSON_COMPAT_TYPEHINT', None):
         setattr(spec_kwargs[key], '_JSON_COMPAT_TYPEHINT', json_compat_typehint)
     spec = self.SPEC_CLASS(**spec_kwargs)
     super().__init__(spec)
@@ -230,14 +221,13 @@ class _FunctionExecutor(base_executor.BaseExecutor):
     # Call function and check returned values.
     outputs = self._FUNCTION(**function_args)
     outputs = outputs or {}
-    output_dict.update(
-        _assign_returned_values(
-            function=self._FUNCTION,
-            outputs=outputs,
-            returned_values=self._RETURNED_VALUES,
-            output_dict=output_dict,
-            json_typehints=self._RETURN_JSON_COMPAT_TYPEHINT,
-        ))
+    output_dict |= _assign_returned_values(
+        function=self._FUNCTION,
+        outputs=outputs,
+        returned_values=self._RETURNED_VALUES,
+        output_dict=output_dict,
+        json_typehints=self._RETURN_JSON_COMPAT_TYPEHINT,
+    )
 
 
 class _FunctionBeamExecutor(base_beam_executor.BaseBeamExecutor,
@@ -259,14 +249,13 @@ class _FunctionBeamExecutor(base_beam_executor.BaseBeamExecutor,
     # Call function and check returned values.
     outputs = self._FUNCTION(**function_args)
     outputs = outputs or {}
-    output_dict.update(
-        _assign_returned_values(
-            function=self._FUNCTION,
-            outputs=outputs,
-            returned_values=self._RETURNED_VALUES,
-            output_dict=output_dict,
-            json_typehints=self._RETURN_JSON_COMPAT_TYPEHINT,
-        ))
+    output_dict |= _assign_returned_values(
+        function=self._FUNCTION,
+        outputs=outputs,
+        returned_values=self._RETURNED_VALUES,
+        output_dict=output_dict,
+        json_typehints=self._RETURN_JSON_COMPAT_TYPEHINT,
+    )
 
 
 def component(
@@ -446,7 +435,6 @@ def component(
 
   spec_inputs = {}
   spec_outputs = {}
-  spec_parameters = {}
   for key, artifact_type in inputs.items():
     spec_inputs[key] = component_spec.ChannelParameter(
         type=artifact_type, optional=(key in arg_defaults))
@@ -458,20 +446,25 @@ def component(
     if key in return_json_typehints:
       setattr(spec_outputs[key], '_JSON_COMPAT_TYPEHINT',
               return_json_typehints[key])
-  for key, primitive_type in parameters.items():
-    spec_parameters[key] = component_spec.ExecutionParameter(
-        type=primitive_type, optional=(key in arg_defaults))
+  spec_parameters = {
+      key: component_spec.ExecutionParameter(
+          type=primitive_type, optional=(key in arg_defaults))
+      for key, primitive_type in parameters.items()
+  }
   component_spec_class = type(
-      '%s_Spec' % func.__name__, (tfx_types.ComponentSpec,), {
+      f'{func.__name__}_Spec',
+      (tfx_types.ComponentSpec, ),
+      {
           'INPUTS': spec_inputs,
           'OUTPUTS': spec_outputs,
           'PARAMETERS': spec_parameters,
           'TYPE_ANNOTATION': component_annotation,
-      })
+      },
+  )
 
   executor_class = type(
-      '%s_Executor' % func.__name__,
-      (_FunctionBeamExecutor if use_beam else _FunctionExecutor,),
+      f'{func.__name__}_Executor',
+      (_FunctionBeamExecutor if use_beam else _FunctionExecutor, ),
       {
           '_ARG_FORMATS': arg_formats,
           '_ARG_DEFAULTS': arg_defaults,
@@ -482,14 +475,15 @@ def component(
           '_RETURNED_VALUES': returned_values,
           '_RETURN_JSON_COMPAT_TYPEHINT': return_json_typehints,
           '__module__': func.__module__,
-      })
+      },
+  )
 
   # Expose the generated executor class in the same module as the decorated
   # function. This is needed so that the executor class can be accessed at the
   # proper module path. One place this is needed is in the Dill pickler used by
   # Apache Beam serialization.
   module = sys.modules[func.__module__]
-  setattr(module, '%s_Executor' % func.__name__, executor_class)
+  setattr(module, f'{func.__name__}_Executor', executor_class)
 
   executor_spec_class = (
       executor_spec.BeamExecutorSpec

@@ -73,10 +73,10 @@ def _input_fn(
   feature_list = []
   label_list = []
   for record_batch in record_batch_iterator:
-    record_dict = {}
-    for column, field in zip(record_batch, record_batch.schema):
-      record_dict[field.name] = column.flatten()
-
+    record_dict = {
+        field.name: column.flatten()
+        for column, field in zip(record_batch, record_batch.schema)
+    }
     label_list.append(record_dict[_LABEL_KEY])
     features = [record_dict[key] for key in _FEATURE_KEYS]
     feature_list.append(np.stack(features, axis=-1))

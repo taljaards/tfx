@@ -85,12 +85,12 @@ def create_mysql_container(container_name: str) -> int:
       SET GLOBAL explicit_defaults_for_timestamp = 1;
       CREATE DATABASE airflow;
   """
-  exit_code, output_bytes = container.exec_run('mysql -uroot -proot -e "%s"' %
-                                               create_db_sql)
+  exit_code, output_bytes = container.exec_run(
+      f'mysql -uroot -proot -e "{create_db_sql}"')
   if exit_code != 0:
     output = output_bytes.decode('utf-8')
     logging.error('Failed to run sql for initialization:\n%s', output)
-    raise RuntimeError('Failed to run initialization SQLs: {}'.format(output))
+    raise RuntimeError(f'Failed to run initialization SQLs: {output}')
 
   client.close()
   return port

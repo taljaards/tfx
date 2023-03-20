@@ -148,7 +148,7 @@ class BaseDriver:
                   'in interactive mode, upstream components must first be run '
                   'with `interactive_context.run(component)` before their '
                   'outputs can be used in downstream components.')
-            artifacts_by_id.update({a.id: a for a in artifacts})
+            artifacts_by_id |= {a.id: a for a in artifacts}
         else:
           artifacts = self._metadata_handler.search_artifacts(
               artifact_name=input_channel.output_key,

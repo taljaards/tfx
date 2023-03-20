@@ -51,8 +51,8 @@ class ExecutorTest(tf.test.TestCase):
         ['unlabelled'])
     self._model = standard_artifacts.Model()
     self._model.uri = os.path.join(self._source_data_dir, 'trainer/current')
-    self._model_version = 'version_' + hashlib.sha256(
-        self._model.uri.encode()).hexdigest()
+    self._model_version = (
+        f'version_{hashlib.sha256(self._model.uri.encode()).hexdigest()}')
 
     self._model_blessing = standard_artifacts.ModelBlessing()
     self._model_blessing.uri = os.path.join(self._source_data_dir,

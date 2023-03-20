@@ -160,11 +160,10 @@ class DslContextRegistry:
       raise ValueError(
           f'Node {_format_node(node)} does not exist in the registry. '
           f'Valid: {", ".join([_format_node(n) for n in self._all_nodes])})')
-    result = []
-    for context in self._all_contexts:
-      if node in self._nodes_by_context[context]:
-        result.append(context)
-    return result
+    return [
+        context for context in self._all_contexts
+        if node in self._nodes_by_context[context]
+    ]
 
   def extract_for_pipeline(self, pipeline: _Pipeline) -> 'DslContextRegistry':
     """Creates new registry with pipeline level contexts filtered out.

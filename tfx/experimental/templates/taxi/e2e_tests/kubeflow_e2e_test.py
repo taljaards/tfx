@@ -48,10 +48,12 @@ class TaxiTemplateKubeflowE2ETest(
             'GCP_AI_PLATFORM_TRAINING_ARGS', 'GCP_AI_PLATFORM_SERVING_ARGS'
         ])
     self._replaceFileContent(
-        os.path.join('pipeline', 'configs.py'), [
-            ('GOOGLE_CLOUD_REGION = \'\'',
-             'GOOGLE_CLOUD_REGION = \'{}\''.format(self._GCP_REGION)),
-        ])
+        os.path.join('pipeline', 'configs.py'),
+        [(
+            'GOOGLE_CLOUD_REGION = \'\'',
+            f"GOOGLE_CLOUD_REGION = \'{self._GCP_REGION}\'",
+        )],
+    )
 
     # Prepare data
     self._prepare_data()

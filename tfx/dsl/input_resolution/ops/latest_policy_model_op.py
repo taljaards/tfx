@@ -149,10 +149,7 @@ def _build_result_dictionary(
     artifact_type_by_name: Dict[str, metadata_store_pb2.ArtifactType],
 ):
   """Adds child artifacts to the result dictionary, based on the Policy."""
-  if (
-      policy == Policy.LATEST_EVALUATOR_BLESSED
-      or policy == Policy.LATEST_BLESSED
-  ):
+  if policy in [Policy.LATEST_EVALUATOR_BLESSED, Policy.LATEST_BLESSED]:
     result[ops_utils.MODEL_BLESSSING_KEY] = [
         model_relations.latest_created(
             artifact_type_by_name[ops_utils.MODEL_BLESSING_TYPE_NAME]
@@ -160,10 +157,7 @@ def _build_result_dictionary(
     ]
 
   # Intentionally use if instead of elif to handle LATEST_BLESSED Policy.
-  if (
-      policy == Policy.LATEST_INFRA_VALIDATOR_BLESSED
-      or policy == Policy.LATEST_BLESSED
-  ):
+  if policy in [Policy.LATEST_INFRA_VALIDATOR_BLESSED, Policy.LATEST_BLESSED]:
     result[ops_utils.MODEL_INFRA_BLESSING_KEY] = [
         model_relations.latest_created(
             artifact_type_by_name[ops_utils.MODEL_INFRA_BLESSSING_TYPE_NAME]
@@ -205,16 +199,13 @@ class LatestPolicyModel(
     # values.
     result = {ops_utils.MODEL_KEY: []}
 
-    if (
-        self.policy == Policy.LATEST_EVALUATOR_BLESSED
-        or self.policy == Policy.LATEST_BLESSED
-    ):
+    if self.policy in [Policy.LATEST_EVALUATOR_BLESSED, Policy.LATEST_BLESSED]:
       result[ops_utils.MODEL_BLESSSING_KEY] = []
 
-    if (
-        self.policy == Policy.LATEST_INFRA_VALIDATOR_BLESSED
-        or self.policy == Policy.LATEST_BLESSED
-    ):
+    if self.policy in [
+        Policy.LATEST_INFRA_VALIDATOR_BLESSED,
+        Policy.LATEST_BLESSED,
+    ]:
       result[ops_utils.MODEL_INFRA_BLESSING_KEY] = []
 
     elif self.policy == Policy.LATEST_PUSHED:
@@ -310,7 +301,7 @@ class LatestPolicyModel(
     input_child_artifacts = input_dict.get(
         ops_utils.MODEL_BLESSSING_KEY, []
     ) + input_dict.get(ops_utils.MODEL_INFRA_BLESSING_KEY, [])
-    input_child_artifact_ids = set([a.id for a in input_child_artifacts])
+    input_child_artifact_ids = {a.id for a in input_child_artifacts}
 
     # If the ModelBlessing and ModelInfraBlessing lists are empty, then no
     # child artifacts can be considered and we raise a SkipSignal. This can
@@ -339,7 +330,7 @@ class LatestPolicyModel(
     # There could be multiple events with the same execution ID but different
     # artifact IDs (e.g. model and baseline_model passed to an Evaluator), so we
     # keep the values of model_artifact_ids_by_execution_id as sets.
-    model_artifact_ids = sorted(set(m.id for m in models))
+    model_artifact_ids = sorted({m.id for m in models})
     model_artifact_ids_by_execution_id = collections.defaultdict(set)
 
     # Pusher takes uses the key "model_export" to take in the Model artifact,

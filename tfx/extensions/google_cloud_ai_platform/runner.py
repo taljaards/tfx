@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper class to start TFX training jobs on AI Platform."""
+
 # TODO(b/168926785): Consider to move some methods to a utility file.
 
 import time
@@ -32,8 +33,7 @@ _CONNECTION_ERROR_RETRY_LIMIT = 5
 # Default container image being used for CAIP training jobs.
 # TODO(b/139934802) Ensure mirroring of released TFX containers in Docker Hub
 # and gcr.io/tfx-oss-public/ registries.
-_TFX_IMAGE = 'gcr.io/tfx-oss-public/tfx:{}'.format(
-    version_utils.get_image_version())
+_TFX_IMAGE = f'gcr.io/tfx-oss-public/tfx:{version_utils.get_image_version()}'
 
 # Entrypoint of cloud AI platform training. The module comes from `tfx`
 # package installation into a default location of 'python'.
@@ -114,8 +114,7 @@ def _launch_cloud_training(project: str,
         raise
 
   if client.get_job_state(response) in client.JOB_STATES_FAILED:
-    err_msg = 'Job \'{}\' did not succeed.  Detailed response {}.'.format(
-        client.get_job_name(), response)
+    err_msg = f"Job \'{client.get_job_name()}\' did not succeed.  Detailed response {response}."
     logging.error(err_msg)
     raise RuntimeError(err_msg)
 
@@ -145,8 +144,7 @@ def _wait_for_operation(api: discovery.Resource, operation: Dict[str, Any],
   result = status_resc.execute()
   if result.get('error'):
     # The operation completed with an error.
-    raise RuntimeError('Failed to execute {}: {}'.format(
-        method_name, result['error']))
+    raise RuntimeError(f"Failed to execute {method_name}: {result['error']}")
   return result
 
 

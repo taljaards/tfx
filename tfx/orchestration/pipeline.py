@@ -321,8 +321,7 @@ class Pipeline(base_node.BaseNode):
     self.additional_pipeline_args = kwargs.pop(  # pylint: disable=g-missing-from-attributes
         'additional_pipeline_args', {})
 
-    reg = kwargs.pop('dsl_context_registry', None)
-    if reg:
+    if reg := kwargs.pop('dsl_context_registry', None):
       if not isinstance(reg, dsl_context_registry.DslContextRegistry):
         raise ValueError('dsl_context_registry must be DslContextRegistry type '
                          f'but got {reg}')
@@ -385,9 +384,9 @@ class Pipeline(base_node.BaseNode):
     # Connects nodes based on producer map.
     for component in deduped_components:
       channels = list(component.inputs.values())
-      for exec_property in component.exec_properties.values():
-        if isinstance(exec_property, ph.ChannelWrappedPlaceholder):
-          channels.append(exec_property.channel)
+      channels.extend(exec_property.channel
+                      for exec_property in component.exec_properties.values()
+                      if isinstance(exec_property, ph.ChannelWrappedPlaceholder))
       for predicate in conditional.get_predicates(component,
                                                   self.dsl_context_registry):
         channels.extend(channel_utils.get_dependent_channels(predicate))
@@ -400,8 +399,7 @@ class Pipeline(base_node.BaseNode):
             # add upstream node here. Pipeline-level inputs will be handled
             # during compilation.
             continue
-          upstream_node = node_by_id.get(node_id)
-          if upstream_node:
+          if upstream_node := node_by_id.get(node_id):
             component.add_upstream_node(upstream_node)
             upstream_node.add_downstream_node(component)
           else:
@@ -417,9 +415,7 @@ class Pipeline(base_node.BaseNode):
         get_child_nodes=lambda c: c.downstream_nodes)
     self._components = []
     for layer in layers:
-      for component in layer:
-        self._components.append(component)
-
+      self._components.extend(iter(layer))
     if self.beam_pipeline_args:
       for component in self._components:
         add_beam_pipeline_args_to_component(component, self.beam_pipeline_args)
@@ -449,10 +445,7 @@ class Pipeline(base_node.BaseNode):
     # If we view a Pipeline as a Node, its inputs should be unwrapped (raw)
     # channels that are provided through PipelineInputs, and consumed by nodes
     # in the inner pipeline.
-    if self._inputs:
-      return self._inputs.raw_inputs
-    else:
-      return {}
+    return self._inputs.raw_inputs if self._inputs else {}
 
   @property
   def outputs(self) -> Dict[str, Any]:

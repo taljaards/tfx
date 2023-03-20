@@ -44,8 +44,7 @@ class _IncludedSplitPairs(object):
     if include_split_pairs is None:
       self._include_split_pairs = None
     else:
-      self._include_split_pairs = set(
-          (test, base) for test, base in include_split_pairs)
+      self._include_split_pairs = set(include_split_pairs)
 
   def included(self, test_split: str, base_split: str) -> bool:
     if self._include_split_pairs is None:
@@ -66,29 +65,26 @@ def _parse_example(serialized: bytes):
 def _get_confusion_configs(
     config: example_diff_pb2.ExampleDiffConfig
 ) -> List[feature_skew_detector.ConfusionConfig]:
-  result = []
-  for confusion in config.paired_example_skew.confusion_config:
-    result.append(feature_skew_detector.ConfusionConfig(confusion.feature_name))
-  return result
+  return [
+      feature_skew_detector.ConfusionConfig(confusion.feature_name)
+      for confusion in config.paired_example_skew.confusion_config
+  ]
 
 
 def _config_to_kwargs(config: example_diff_pb2.ExampleDiffConfig):
   """Convert ExampleDiffConfig to DetectFeatureSkewImpl kwargs."""
-  kwargs = {}
   if not config.HasField('paired_example_skew'):
     raise ValueError('ExampleDiffConfig missing required paired_example_skew.')
-  kwargs['identifier_features'] = list(
-      config.paired_example_skew.identifier_features)
-  kwargs['features_to_ignore'] = list(
-      config.paired_example_skew.ignore_features)
-  kwargs['sample_size'] = config.paired_example_skew.skew_sample_size
-  kwargs['float_round_ndigits'] = config.paired_example_skew.float_round_ndigits
-  kwargs[
-      'allow_duplicate_identifiers'] = config.paired_example_skew.allow_duplicate_identifiers
-  # TODO(b/227361696): Add better unit tests here. This will require generating
-  # a new dataset for test purposes.
-  kwargs['confusion_configs'] = _get_confusion_configs(config)
-  return kwargs
+  return {
+      'identifier_features':
+      list(config.paired_example_skew.identifier_features),
+      'features_to_ignore': list(config.paired_example_skew.ignore_features),
+      'sample_size': config.paired_example_skew.skew_sample_size,
+      'float_round_ndigits': config.paired_example_skew.float_round_ndigits,
+      'allow_duplicate_identifiers':
+      config.paired_example_skew.allow_duplicate_identifiers,
+      'confusion_configs': _get_confusion_configs(config),
+  }
 
 
 class Executor(base_beam_executor.BaseBeamExecutor):
@@ -146,18 +142,17 @@ class Executor(base_beam_executor.BaseBeamExecutor):
           split_pairs.append((test_split, base_split))
     if not split_pairs:
       raise ValueError(
-          'No split pairs from test and baseline examples: %s, %s' %
-          (test_examples, base_examples))
+          f'No split pairs from test and baseline examples: {test_examples}, {base_examples}'
+      )
     if included_split_pairs.get_included_split_pairs():
       missing_split_pairs = included_split_pairs.get_included_split_pairs(
       ) - set(split_pairs)
       if missing_split_pairs:
-        raise ValueError(
+        raise ValueError((
             'Missing split pairs identified in include_split_pairs: %s' %
-            ', '.join([
-                '%s_%s' % (test, baseline)
-                for test, baseline in missing_split_pairs
-            ]))
+            ', '.join(
+                [f'{test}_{baseline}'
+                 for test, baseline in missing_split_pairs])))
     with self._make_beam_pipeline() as p:
       for test_split, base_split in split_pairs:
         test_uri = artifact_utils.get_split_uri([test_examples], test_split)
@@ -168,10 +163,10 @@ class Executor(base_beam_executor.BaseBeamExecutor):
             test_tfxio, record_based_tfxio.RecordBasedTFXIO) or not isinstance(
                 base_tfxio, record_based_tfxio.RecordBasedTFXIO):
           # TODO(b/227361696): Support more general sources.
-          raise ValueError('Only RecordBasedTFXIO supported, got %s, %s' %
-                           (test_tfxio, base_tfxio))
+          raise ValueError(
+              f'Only RecordBasedTFXIO supported, got {test_tfxio}, {base_tfxio}')
 
-        split_pair = '%s_%s' % (test_split, base_split)
+        split_pair = f'{test_split}_{base_split}'
         logging.info('Processing split pair %s', split_pair)
         # pylint: disable=cell-var-from-loop
         @beam.ptransform_fn
@@ -186,8 +181,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
                      | feature_skew_detector.DetectFeatureSkewImpl(
                          **_config_to_kwargs(diff_config)))
 
-          output_uri = os.path.join(example_diff_artifact.uri,
-                                    'SplitPair-%s' % split_pair)
+          output_uri = os.path.join(example_diff_artifact.uri, f'SplitPair-{split_pair}')
           _ = (
               results[feature_skew_detector.SKEW_RESULTS_KEY]
               | 'WriteStats' >> feature_skew_detector.skew_results_sink(
@@ -207,6 +201,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
                 'WriteConfusion' >> feature_skew_detector.confusion_count_sink(
                     os.path.join(output_uri, CONFUSION_FILE_NAME)))
 
-          # pylint: enable=cell-var-from-loop
+                # pylint: enable=cell-var-from-loop
 
-        _ = p | 'ProcessSplits[%s]' % split_pair >> _iteration()  # pylint: disable=no-value-for-parameter
+
+        _ = p | f'ProcessSplits[{split_pair}]' >> _iteration()

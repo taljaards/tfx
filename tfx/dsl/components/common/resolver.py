@@ -100,9 +100,8 @@ class _ResolverDriver(base_driver.BaseDriver):
         not typing_utils.is_compatible(strategy_cls, Type[ResolverStrategy])):
       return None
     kwargs = exec_properties.get(RESOLVER_CONFIG, {})
-    if not typing_utils.is_compatible(kwargs, Mapping[str, Any]):
-      return None
-    return strategy_cls(**kwargs)
+    return (strategy_cls(**kwargs) if typing_utils.is_compatible(
+        kwargs, Mapping[str, Any]) else None)
 
   def _build_input_dict(
       self,
@@ -126,7 +125,7 @@ class _ResolverDriver(base_driver.BaseDriver):
             type_name=channel.type_name,
             producer_component_id=channel.producer_component_id,
             output_key=channel.output_key)
-        artifacts_by_id.update({a.id: a for a in artifacts})
+        artifacts_by_id |= {a.id: a for a in artifacts}
       result[key] = list(artifacts_by_id.values())
     return result
 
@@ -151,8 +150,7 @@ class _ResolverDriver(base_driver.BaseDriver):
         contexts=contexts)
     # Gets resolved artifacts.
     resolved = self._build_input_dict(pipeline_info, input_dict)
-    maybe_strategy = self._maybe_get_strategy(exec_properties)
-    if maybe_strategy:
+    if maybe_strategy := self._maybe_get_strategy(exec_properties):
       resolved = maybe_strategy.resolve_artifacts(
           self._metadata_handler.store, resolved)
     if resolved is None:

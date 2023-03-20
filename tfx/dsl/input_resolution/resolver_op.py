@@ -112,7 +112,7 @@ class _ResolverOpMeta(abc.ABCMeta):
   def return_data_type(cls) -> DataType:
     return cls._return_data_type
 
-  def __call__(cls, *args: Union['Node', Mapping[str, 'Node']], **kwargs: Any):
+  def __call__(self, *args: Union['Node', Mapping[str, 'Node']], **kwargs: Any):
     """Fake instantiation of the ResolverOp class.
 
     Original implementation of metaclass.__call__ method is to instantiate
@@ -130,21 +130,23 @@ class _ResolverOpMeta(abc.ABCMeta):
     Returns:
       An OpNode instance that represents the operator call.
     """
-    args = cls._check_and_transform_args(args)
-    cls._check_kwargs(kwargs)
+    args = self._check_and_transform_args(args)
+    self._check_kwargs(kwargs)
     return OpNode(
-        op_type=cls,
+        op_type=self,
         args=args,
-        output_data_type=cls._return_data_type,
-        kwargs=kwargs)
+        output_data_type=self._return_data_type,
+        kwargs=kwargs,
+    )
 
-  def _check_and_transform_args(cls, args: Sequence[Any]) -> Sequence['Node']:
+  def _check_and_transform_args(self, args: Sequence[Any]) -> Sequence['Node']:
     """Static check against ResolverOp positional arguments."""
-    if len(args) != len(cls._arg_data_types):
-      raise ValueError(f'{cls.__name__} expects {len(cls._arg_data_types)} '
-                       f'arguments but got {len(args)}.')
+    if len(args) != len(self._arg_data_types):
+      raise ValueError(
+          f'{self.__name__} expects {len(self._arg_data_types)} arguments but got {len(args)}.'
+      )
     transformed_args = []
-    for arg, arg_data_type in zip(args, cls._arg_data_types):
+    for arg, arg_data_type in zip(args, self._arg_data_types):
       if (arg_data_type == DataType.ARTIFACT_MULTIMAP and
           isinstance(arg, dict)):
         arg = DictNode(arg)
@@ -153,20 +155,20 @@ class _ResolverOpMeta(abc.ABCMeta):
                          'Use output of another operator as an argument.')
       if arg.output_data_type != arg_data_type:
         raise TypeError(
-            f'{cls.__name__} takes {DataType.Name(arg_data_type)} type '
-            f'but got {DataType.Name(arg.output_data_type)} instead.')
+            f'{self.__name__} takes {DataType.Name(arg_data_type)} type but got {DataType.Name(arg.output_data_type)} instead.'
+        )
       transformed_args.append(arg)
     return transformed_args
 
-  def _check_kwargs(cls, kwargs: Mapping[str, Any]):
+  def _check_kwargs(self, kwargs: Mapping[str, Any]):
     """Static check against ResolverOp keyword arguments."""
-    for name, prop in cls._props_by_name.items():
+    for name, prop in self._props_by_name.items():
       if prop.required and name not in kwargs:
         raise ValueError(f'Required property {name} is missing.')
     for name, value in kwargs.items():
-      if name not in cls._props_by_name:
+      if name not in self._props_by_name:
         raise KeyError(f'Unknown property {name}.')
-      prop = cls._props_by_name[name]
+      prop = self._props_by_name[name]
       prop.validate(value)
 
   def create(cls, **props: Any) -> 'ResolverOp':
@@ -287,9 +289,7 @@ class Node:
   output_data_type: DataType
 
   def __eq__(self, other):
-    if not isinstance(other, Node):
-      return NotImplemented
-    return self is other
+    return self is other if isinstance(other, Node) else NotImplemented
 
   def __hash__(self):
     return hash(id(self))
@@ -332,9 +332,8 @@ class InputNode(Node):
     return 'Input()'
 
   def __eq__(self, others):
-    if not isinstance(others, InputNode):
-      return NotImplemented
-    return self.wrapped == others.wrapped
+    return (self.wrapped == others.wrapped
+            if isinstance(others, InputNode) else NotImplemented)
 
   def __hash__(self):
     return hash(self.wrapped)
@@ -353,9 +352,8 @@ class DictNode(Node):
     self.nodes = nodes
 
   def __eq__(self, other):
-    if not isinstance(other, DictNode):
-      return NotImplemented
-    return self.nodes == other.nodes
+    return (self.nodes == other.nodes
+            if isinstance(other, DictNode) else NotImplemented)
 
   def __hash__(self):
     return hash(tuple(sorted(self.nodes.items())))

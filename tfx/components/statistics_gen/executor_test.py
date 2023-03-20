@@ -112,25 +112,33 @@ class ExecutorTest(parameterized.TestCase):
     if sharded_output:
       self._validate_sharded_stats_output(
           os.path.join(
-              stats.uri, 'Split-train',
-              'FeatureStats' + tfdv.default_sharded_output_suffix()))
+              stats.uri,
+              'Split-train',
+              f'FeatureStats{tfdv.default_sharded_output_suffix()}',
+          ))
       self._validate_sharded_stats_output(
           os.path.join(
-              stats.uri, 'Split-eval',
-              'FeatureStats' + tfdv.default_sharded_output_suffix()))
+              stats.uri,
+              'Split-eval',
+              f'FeatureStats{tfdv.default_sharded_output_suffix()}',
+          ))
     else:
       # We want to verify that attempting to load sharded stats produces an
       # error.
       with self.assertRaisesRegex(ValueError, 'No input paths found.*'):
         self._validate_sharded_stats_output(
             os.path.join(
-                stats.uri, 'Split-train',
-                'FeatureStats' + tfdv.default_sharded_output_suffix()))
+                stats.uri,
+                'Split-train',
+                f'FeatureStats{tfdv.default_sharded_output_suffix()}',
+            ))
       with self.assertRaisesRegex(ValueError, 'No input paths found.*'):
         self._validate_sharded_stats_output(
             os.path.join(
-                stats.uri, 'Split-eval',
-                'FeatureStats' + tfdv.default_sharded_output_suffix()))
+                stats.uri,
+                'Split-eval',
+                f'FeatureStats{tfdv.default_sharded_output_suffix()}',
+            ))
 
     # Assert 'test' split is excluded.
     self.assertFalse(

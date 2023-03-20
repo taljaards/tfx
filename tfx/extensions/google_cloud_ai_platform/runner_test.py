@@ -108,12 +108,12 @@ class RunnerTest(tf.test.TestCase):
                                 class_path, self._training_inputs, None)
 
     self._mock_create.assert_called_with(
-        body=mock.ANY, parent='projects/{}'.format(self._project_id))
+        body=mock.ANY, parent=f'projects/{self._project_id}')
     kwargs = self._mock_create.call_args[1]
     body = kwargs['body']
 
-    default_image = 'gcr.io/tfx-oss-public/tfx:{}'.format(
-        version_utils.get_image_version())
+    default_image = (
+        f'gcr.io/tfx-oss-public/tfx:{version_utils.get_image_version()}')
     self.assertLessEqual({
         'masterConfig': {
             'imageUri':
@@ -148,7 +148,7 @@ class RunnerTest(tf.test.TestCase):
                                 class_path, self._training_inputs, self._job_id)
 
     self._mock_create.assert_called_with(
-        body=mock.ANY, parent='projects/{}'.format(self._project_id))
+        body=mock.ANY, parent=f'projects/{self._project_id}')
     kwargs = self._mock_create.call_args[1]
     body = kwargs['body']
     self.assertDictContainsSubset(
@@ -186,13 +186,14 @@ class RunnerTest(tf.test.TestCase):
                                 True, region)
 
     self._mock_create.assert_called_with(
-        parent='projects/{}/locations/{}'.format(self._project_id, region),
-        custom_job=mock.ANY)
+        parent=f'projects/{self._project_id}/locations/{region}',
+        custom_job=mock.ANY,
+    )
     kwargs = self._mock_create.call_args[1]
     body = kwargs['custom_job']
 
-    default_image = 'gcr.io/tfx-oss-public/tfx:{}'.format(
-        version_utils.get_image_version())
+    default_image = (
+        f'gcr.io/tfx-oss-public/tfx:{version_utils.get_image_version()}')
     self.assertDictContainsSubset(
         {
             'worker_pool_specs': [{
@@ -234,8 +235,9 @@ class RunnerTest(tf.test.TestCase):
                                 {}, True, region)
 
     self._mock_create.assert_called_with(
-        parent='projects/{}/locations/{}'.format(self._project_id, region),
-        custom_job=mock.ANY)
+        parent=f'projects/{self._project_id}/locations/{region}',
+        custom_job=mock.ANY,
+    )
     kwargs = self._mock_create.call_args[1]
     body = kwargs['custom_job']
     self.assertLessEqual({
@@ -294,8 +296,9 @@ class RunnerTest(tf.test.TestCase):
                                 {}, True, region)
 
     self._mock_create.assert_called_with(
-        parent='projects/{}/locations/{}'.format(self._project_id, region),
-        custom_job=mock.ANY)
+        parent=f'projects/{self._project_id}/locations/{region}',
+        custom_job=mock.ANY,
+    )
     kwargs = self._mock_create.call_args[1]
     body = kwargs['custom_job']
     self.assertDictContainsSubset(
@@ -388,8 +391,8 @@ class RunnerTest(tf.test.TestCase):
         credentials=mock.Mock(spec=auth_credentials.AnonymousCredentials()))
 
     self._mock_endpoint = aiplatform.Endpoint(
-        endpoint_name='projects/{}/locations/us-central1/endpoints/1234'.format(
-            self._project_id))
+        endpoint_name=
+        f'projects/{self._project_id}/locations/us-central1/endpoints/1234')
 
     self._mock_endpoint_create = mock.Mock()
     aiplatform.Endpoint.create = self._mock_endpoint_create
@@ -436,17 +439,15 @@ class RunnerTest(tf.test.TestCase):
       }
 
     self._mock_models_create.assert_called_with(
-        body=mock.ANY,
-        parent='projects/{}'.format(self._project_id),
-    )
+        body=mock.ANY, parent=f'projects/{self._project_id}')
     models_create_kwargs = self._mock_models_create.call_args[1]
     self.assertDictEqual(expected_models_create_body,
                          models_create_kwargs['body'])
 
     self._mock_versions_create.assert_called_with(
         body=mock.ANY,
-        parent='projects/{}/models/{}'.format(self._project_id,
-                                              self._model_name))
+        parent=f'projects/{self._project_id}/models/{self._model_name}',
+    )
     versions_create_kwargs = self._mock_versions_create.call_args[1]
 
     self.assertDictEqual(expected_versions_create_body,
@@ -456,8 +457,9 @@ class RunnerTest(tf.test.TestCase):
       return
 
     self._mock_set_default.assert_called_with(
-        name='projects/{}/models/{}/versions/{}'.format(
-            self._project_id, self._model_name, self._model_version))
+        name=
+        f'projects/{self._project_id}/models/{self._model_name}/versions/{self._model_version}'
+    )
     self._mock_set_default_execute.assert_called_with()
 
   def _assertDeployModelMockCallsVertex(self,
@@ -491,7 +493,7 @@ class RunnerTest(tf.test.TestCase):
     self._mock_model_deploy.assert_called_with(**expected_model_deploy_body)
 
     self._mock_endpoint_list.assert_called_with(
-        filter='display_name="{}"'.format(self._endpoint_name))
+        filter=f'display_name="{self._endpoint_name}"')
 
   def testDeployModelForAIPPrediction(self):
     self._setUpPredictionMocks()
@@ -646,9 +648,9 @@ class RunnerTest(tf.test.TestCase):
 
   def _assertDeleteModelVersionMockCalls(self):
     self._mock_models_version_delete.assert_called_with(
-        name='projects/{}/models/{}/versions/{}'.format(self._project_id,
-                                                        self._model_name,
-                                                        self._model_version),)
+        name=
+        f'projects/{self._project_id}/models/{self._model_name}/versions/{self._model_version}'
+    )
     model_version_delete_kwargs = self._mock_models_version_delete.call_args[1]
     self.assertNotIn('body', model_version_delete_kwargs)
 
@@ -678,8 +680,7 @@ class RunnerTest(tf.test.TestCase):
 
   def _assertDeleteModelMockCalls(self):
     self._mock_models_delete.assert_called_with(
-        name='projects/{}/models/{}'.format(self._project_id,
-                                            self._model_name),)
+        name=f'projects/{self._project_id}/models/{self._model_name}')
     model_delete_kwargs = self._mock_models_delete.call_args[1]
     self.assertNotIn('body', model_delete_kwargs)
 
@@ -850,8 +851,8 @@ class RunnerTest(tf.test.TestCase):
         credentials=mock.Mock(spec=auth_credentials.AnonymousCredentials()))
 
     self._mock_endpoint = aiplatform.Endpoint(
-        endpoint_name='projects/{}/locations/us-central1/endpoints/1234'.format(
-            self._project_id))
+        endpoint_name=
+        f'projects/{self._project_id}/locations/us-central1/endpoints/1234')
 
     self._mock_endpoint_list = mock.Mock()
     aiplatform.Endpoint.list = self._mock_endpoint_list
@@ -909,8 +910,8 @@ class RunnerTest(tf.test.TestCase):
         credentials=mock.Mock(spec=auth_credentials.AnonymousCredentials()))
 
     self._mock_endpoint = aiplatform.Endpoint(
-        endpoint_name='projects/{}/locations/us-central1/endpoints/1234'.format(
-            self._project_id))
+        endpoint_name=
+        f'projects/{self._project_id}/locations/us-central1/endpoints/1234')
 
     self._mock_endpoint_list = mock.Mock()
     aiplatform.Endpoint.list = self._mock_endpoint_list

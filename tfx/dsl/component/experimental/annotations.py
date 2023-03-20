@@ -32,10 +32,9 @@ except ModuleNotFoundError:
 class _ArtifactGenericMeta(type):
   """Metaclass for _ArtifactGeneric, to enable class indexing."""
 
-  def __getitem__(cls: Type['_ArtifactGeneric'],
-                  params: Type[artifact.Artifact]):
+  def __getitem__(self, params: Type[artifact.Artifact]):
     """Metaclass method allowing indexing class (`_ArtifactGeneric[T]`)."""
-    return cls._generic_getitem(params)  # pytype: disable=attribute-error
+    return self._generic_getitem(params)
 
 
 class _ArtifactGeneric(metaclass=_ArtifactGenericMeta):
@@ -55,31 +54,25 @@ class _ArtifactGeneric(metaclass=_ArtifactGenericMeta):
   @classmethod
   def _generic_getitem(cls, params):
     """Return the result of `_ArtifactGeneric[T]` for a given type T."""
-    # Check that the given parameter is a concrete (i.e. non-abstract) subclass
-    # of `tfx.types.Artifact`.
     if (inspect.isclass(params) and issubclass(params, artifact.Artifact) and
         params.TYPE_NAME):
       return cls(params, _init_via_getitem=True)
-    else:
-      class_name = cls.__name__
-      raise ValueError(
-          ('Generic type `%s[T]` expects the single parameter T to be a '
-           'concrete subclass of `tfx.types.Artifact` (got %r instead).') %
-          (class_name, params))
+    class_name = cls.__name__
+    raise ValueError(
+        ('Generic type `%s[T]` expects the single parameter T to be a '
+         'concrete subclass of `tfx.types.Artifact` (got %r instead).') %
+        (class_name, params))
 
   def __repr__(self):
-    return '%s[%s]' % (self.__class__.__name__, self.type)
+    return f'{self.__class__.__name__}[{self.type}]'
 
 
 class _PrimitiveTypeGenericMeta(type):
   """Metaclass for _PrimitiveTypeGeneric, to enable primitive type indexing."""
 
-  def __getitem__(
-      cls: Type['_PrimitiveTypeGeneric'],
-      params: Type[Union[int, float, str, bool, List[Any], Dict[Any, Any]]],
-  ):
+  def __getitem__(self, params: Type[Union[int, float, str, bool, List[Any], Dict[Any, Any]]]):
     """Metaclass method allowing indexing class (`_PrimitiveTypeGeneric[T]`)."""
-    return cls._generic_getitem(params)  # pytype: disable=attribute-error
+    return self._generic_getitem(params)
 
 
 class _PrimitiveTypeGeneric(metaclass=_PrimitiveTypeGenericMeta):
@@ -100,20 +93,18 @@ class _PrimitiveTypeGeneric(metaclass=_PrimitiveTypeGenericMeta):
   @classmethod
   def _generic_getitem(cls, params):
     """Return the result of `_PrimitiveTypeGeneric[T]` for a given type T."""
-    # Check that the given parameter is a primitive type.
     if (inspect.isclass(params) and params in (int, float, str, bool) or
         json_compat.is_json_compatible(params)):
       return cls(params, _init_via_getitem=True)
-    else:
-      class_name = cls.__name__
-      raise ValueError(
-          ('Generic type `%s[T]` expects the single parameter T to be '
-           '`int`, `float`, `str`, `bool` or JSON-compatible types '
-           '(Dict[str, T], List[T]) (got %r instead).') %
-          (class_name, params))
+    class_name = cls.__name__
+    raise ValueError(
+        ('Generic type `%s[T]` expects the single parameter T to be '
+         '`int`, `float`, `str`, `bool` or JSON-compatible types '
+         '(Dict[str, T], List[T]) (got %r instead).') %
+        (class_name, params))
 
   def __repr__(self):
-    return '%s[%s]' % (self.__class__.__name__, self._type)
+    return f'{self.__class__.__name__}[{self._type}]'
 
   @property
   def type(self):
@@ -123,10 +114,9 @@ class _PrimitiveTypeGeneric(metaclass=_PrimitiveTypeGenericMeta):
 class _PipelineTypeGenericMeta(type):
   """Metaclass for _PipelineTypeGeneric."""
 
-  def __getitem__(cls: Type['_PipelineTypeGeneric'],
-                  params: Type[_BeamPipeline]):
+  def __getitem__(self, params: Type[_BeamPipeline]):
     """Metaclass method allowing indexing class (`_PipelineTypeGeneric[T]`)."""
-    return cls._generic_getitem(params)  # pytype: disable=attribute-error
+    return self._generic_getitem(params)
 
 
 class _PipelineTypeGeneric(
@@ -148,18 +138,16 @@ class _PipelineTypeGeneric(
   @classmethod
   def _generic_getitem(cls, params):
     """Return the result of `_PrimitiveTypeGeneric[T]` for a given type T."""
-    # Check that the given parameter is a primitive type.
     if inspect.isclass(params) and params in (_BeamPipeline,):
       return cls(params, _init_via_getitem=True)
-    else:
-      class_name = cls.__name__
-      raise ValueError(
-          ('Generic type `%s[T]` expects the single parameter T to be '
-           '`beam.Pipeline`, got %r instead.') %
-          (class_name, params))
+    class_name = cls.__name__
+    raise ValueError(
+        ('Generic type `%s[T]` expects the single parameter T to be '
+         '`beam.Pipeline`, got %r instead.') %
+        (class_name, params))
 
   def __repr__(self):
-    return '%s[%s]' % (self.__class__.__name__, self._type)
+    return f'{self.__class__.__name__}[{self._type}]'
 
   @property
   def type(self):

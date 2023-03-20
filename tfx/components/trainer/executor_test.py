@@ -167,10 +167,11 @@ class ExecutorTest(tf.test.TestCase):
     hp_artifact.uri = os.path.join(self._output_data_dir, 'hyperparameters/')
 
     # TODO(jyzhao): use real keras_tuner.HyperParameters instead of dict.
-    hyperparameters = {}
-    hyperparameters['first_dnn_layer_size'] = 100
-    hyperparameters['num_dnn_layers'] = 4
-    hyperparameters['dnn_decay_factor'] = 0.7
+    hyperparameters = {
+        'first_dnn_layer_size': 100,
+        'num_dnn_layers': 4,
+        'dnn_decay_factor': 0.7,
+    }
     io_utils.write_string_file(
         os.path.join(hp_artifact.uri, 'hyperparameters.txt'),
         json.dumps(hyperparameters))

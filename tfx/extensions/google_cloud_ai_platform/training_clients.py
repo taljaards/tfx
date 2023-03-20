@@ -13,6 +13,7 @@
 # limitations under the License.
 """An abstract class for the Trainer for both CAIP and Vertex."""
 
+
 import abc
 import datetime
 import json
@@ -31,8 +32,7 @@ from tfx.utils import telemetry_utils
 from tfx.utils import version_utils
 
 # Default container image being used for CAIP training jobs.
-_TFX_IMAGE = 'gcr.io/tfx-oss-public/tfx:{}'.format(
-    version_utils.get_image_version())
+_TFX_IMAGE = f'gcr.io/tfx-oss-public/tfx:{version_utils.get_image_version()}'
 
 # Entrypoint of cloud AI platform training. The module comes from `tfx`
 # package installation into a default location of 'python'.
@@ -235,16 +235,13 @@ class CAIPJobClient(AbstractJobClient):
       job_labels.update(telemetry_utils.make_labels_dict())
 
     # 'tfx_YYYYmmddHHMMSS' is the default job ID if not explicitly specified.
-    job_id = job_id or 'tfx_{}'.format(
-        datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+    job_id = job_id or f"tfx_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    caip_job = {
+    return {
         'job_id': job_id,
         'training_input': training_inputs,
-        'labels': job_labels
+        'labels': job_labels,
     }
-
-    return caip_job
 
   def launch_job(self, project: str, training_job: Dict[str, Any]) -> None:
     """Launches a long-running job.
@@ -256,7 +253,7 @@ class CAIPJobClient(AbstractJobClient):
           the detailed schema.
     """
 
-    parent = 'projects/{}'.format(project)
+    parent = f'projects/{project}'
 
     # Submit job to AIP Training
     logging.info('TrainingJob=%s', training_job)
@@ -264,7 +261,7 @@ class CAIPJobClient(AbstractJobClient):
                  training_job['job_id'], parent)
     request = self._client.projects().jobs().create(
         body=training_job, parent=parent)
-    self._job_name = '{}/jobs/{}'.format(parent, training_job['job_id'])
+    self._job_name = f"{parent}/jobs/{training_job['job_id']}"
     request.execute()
 
   def get_job(self) -> Dict[str, str]:
@@ -380,9 +377,10 @@ class VertexJobClient(AbstractJobClient):
     # 'tfx_YYYYmmddHHMMSS_xxxxxxxx' is the default job display name if not
     # explicitly specified.
     job_id = job_args.get('display_name', job_id)
-    job_id = job_id or 'tfx_{}_{}'.format(
-        datetime.datetime.now().strftime('%Y%m%d%H%M%S'),
-        '%08x' % random.getrandbits(32))
+    job_id = (
+        job_id or
+        f"tfx_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{'%08x' % random.getrandbits(32)}"
+    )
 
     with telemetry_utils.scoped_labels(
         {telemetry_utils.LABEL_TFX_EXECUTOR: executor_class_path}):
@@ -391,14 +389,12 @@ class VertexJobClient(AbstractJobClient):
 
     encryption_spec = job_args.get('encryption_spec', {})
 
-    custom_job = {
+    return {
         'display_name': job_id,
         'job_spec': custom_job_spec,
         'labels': job_labels,
         'encryption_spec': encryption_spec,
     }
-
-    return custom_job
 
   def launch_job(self, project: str, training_job: Dict[str, Any]) -> None:
     """Launches a long-running job.
@@ -451,6 +447,4 @@ def get_job_client(
   Returns:
     The corresponding job client.
   """
-  if enable_vertex:
-    return VertexJobClient(vertex_region)
-  return CAIPJobClient()
+  return VertexJobClient(vertex_region) if enable_vertex else CAIPJobClient()

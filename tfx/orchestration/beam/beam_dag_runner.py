@@ -168,9 +168,8 @@ class BeamDagRunner(tfx_runner.IrBasedRunner):
       spec.Unpack(result.docker_platform_config)
     else:
       raise ValueError(
-          'Platform config of {} is expected to be of one of the '
-          'types of tfx.orchestration.deployment_config.LocalPlatformConfig.config '
-          'but got type {}'.format(node_id, spec.type_url))
+          f'Platform config of {node_id} is expected to be of one of the types of tfx.orchestration.deployment_config.LocalPlatformConfig.config but got type {spec.type_url}'
+      )
     return result
 
   def _extract_deployment_config(
@@ -237,7 +236,7 @@ class BeamDagRunner(tfx_runner.IrBasedRunner):
           snapshot_settings=pr_opts.snapshot_settings)
 
     with telemetry_utils.scoped_labels(
-        {telemetry_utils.LABEL_TFX_RUNNER: 'beam'}):
+          {telemetry_utils.LABEL_TFX_RUNNER: 'beam'}):
       with beam.Pipeline() as p:
         # Uses for triggering the node DoFns.
         root = p | 'CreateRoot' >> beam.Create([None])
@@ -281,17 +280,17 @@ class BeamDagRunner(tfx_runner.IrBasedRunner):
 
           # Each signal is an empty PCollection. AsIter ensures a node will
           # be triggered after upstream nodes are finished.
-          signal_map[node_id] = (
-              root
-              | 'Run[%s]' % node_id >> beam.ParDo(
-                  self._PIPELINE_NODE_DO_FN_CLS(
-                      pipeline_node=pipeline_node,
-                      mlmd_connection_config=connection_config,
-                      pipeline_info=pipeline.pipeline_info,
-                      pipeline_runtime_spec=pipeline.runtime_spec,
-                      executor_spec=executor_spec,
-                      custom_driver_spec=custom_driver_spec,
-                      deployment_config=deployment_config,
-                      pipeline=pipeline),
-                  *[beam.pvalue.AsIter(s) for s in signals_to_wait]))
+          signal_map[node_id] = root | (f'Run[{node_id}]' >> beam.ParDo(
+              self._PIPELINE_NODE_DO_FN_CLS(
+                  pipeline_node=pipeline_node,
+                  mlmd_connection_config=connection_config,
+                  pipeline_info=pipeline.pipeline_info,
+                  pipeline_runtime_spec=pipeline.runtime_spec,
+                  executor_spec=executor_spec,
+                  custom_driver_spec=custom_driver_spec,
+                  deployment_config=deployment_config,
+                  pipeline=pipeline,
+              ),
+              *[beam.pvalue.AsIter(s) for s in signals_to_wait],
+          ))
           logging.info('Node %s is scheduled.', node_id)

@@ -65,9 +65,9 @@ class Feature:
     self.default_value = default_value
     self.length = length
 
-    assert dtype in _TYPE_LIST_MAP, (
-        'Feature %s must have a dtype of tf.string, tf.int64 or tf.float32' %
-        name)
+    assert (
+        dtype in _TYPE_LIST_MAP
+    ), f'Feature {name} must have a dtype of tf.string, tf.int64 or tf.float32'
     assert ((default_value is None and length is None) or
             (default_value is not None and length is not None)), (
                 'Feature %s: default_value and length must both be specified '

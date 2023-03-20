@@ -47,7 +47,4 @@ class Unnest(
 
     main_channel = input_dict.get(self.key)
     rest = {k: v for k, v in input_dict.items() if k != self.key}
-    result = []
-    for main_artifact in main_channel:
-      result.append({self.key: [main_artifact], **rest})
-    return result
+    return [{self.key: [main_artifact], **rest} for main_artifact in main_channel]

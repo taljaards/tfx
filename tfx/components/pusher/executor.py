@@ -116,9 +116,7 @@ class Executor(base_executor.BaseExecutor):
     Raises:
       RuntimeError: If no model path is found from input_dict.
     """
-    # Check input_dict['model'] first.
-    models = input_dict.get(standard_component_specs.MODEL_KEY)
-    if models:
+    if models := input_dict.get(standard_component_specs.MODEL_KEY):
       model = artifact_utils.get_single_instance(models)
       return path_utils.serving_model_path(
           model.uri, path_utils.is_old_model_artifact(model))
@@ -178,40 +176,37 @@ class Executor(base_executor.BaseExecutor):
         push_destination)
 
     destination_kind = push_destination.WhichOneof('destination')
-    if destination_kind == 'filesystem':
-      fs_config = push_destination.filesystem
-      if fs_config.versioning == _Versioning.AUTO:
-        fs_config.versioning = _Versioning.UNIX_TIMESTAMP
-      if fs_config.versioning == _Versioning.UNIX_TIMESTAMP:
-        model_version = str(int(time.time()))
-      else:
-        raise NotImplementedError(
-            'Invalid Versioning {}'.format(fs_config.versioning))
-      logging.info('Model version: %s', model_version)
-      serving_path = os.path.join(fs_config.base_directory, model_version)
+    if destination_kind != 'filesystem':
+      raise NotImplementedError(f'Invalid push destination {destination_kind}')
 
-      if fileio.exists(serving_path):
-        logging.info(
-            'Destination directory %s already exists, skipping current push.',
-            serving_path)
-      else:
-        # For TensorFlow SavedModel, saved_model.pb file should be the last file
-        # to be copied as TF serving and other codes rely on that file as an
-        # indication that the model is available.
-        # https://github.com/tensorflow/tensorflow/blob/d5b3c79b4804134d0d17bfce9f312151f6337dba/tensorflow/python/saved_model/save.py#L1445
-        io_utils.copy_dir(
-            model_path, serving_path, deny_regex_patterns=[r'saved_model\.pb'])
-        saved_model_path = os.path.join(model_path, 'saved_model.pb')
-        if fileio.exists(saved_model_path):
-          io_utils.copy_file(
-              saved_model_path,
-              os.path.join(serving_path, 'saved_model.pb'),
-          )
-        logging.info('Model written to serving path %s.', serving_path)
+    fs_config = push_destination.filesystem
+    if fs_config.versioning == _Versioning.AUTO:
+      fs_config.versioning = _Versioning.UNIX_TIMESTAMP
+    if fs_config.versioning == _Versioning.UNIX_TIMESTAMP:
+      model_version = str(int(time.time()))
     else:
-      raise NotImplementedError(
-          'Invalid push destination {}'.format(destination_kind))
+      raise NotImplementedError(f'Invalid Versioning {fs_config.versioning}')
+    logging.info('Model version: %s', model_version)
+    serving_path = os.path.join(fs_config.base_directory, model_version)
 
+    if fileio.exists(serving_path):
+      logging.info(
+          'Destination directory %s already exists, skipping current push.',
+          serving_path)
+    else:
+      # For TensorFlow SavedModel, saved_model.pb file should be the last file
+      # to be copied as TF serving and other codes rely on that file as an
+      # indication that the model is available.
+      # https://github.com/tensorflow/tensorflow/blob/d5b3c79b4804134d0d17bfce9f312151f6337dba/tensorflow/python/saved_model/save.py#L1445
+      io_utils.copy_dir(
+          model_path, serving_path, deny_regex_patterns=[r'saved_model\.pb'])
+      saved_model_path = os.path.join(model_path, 'saved_model.pb')
+      if fileio.exists(saved_model_path):
+        io_utils.copy_file(
+            saved_model_path,
+            os.path.join(serving_path, 'saved_model.pb'),
+        )
+      logging.info('Model written to serving path %s.', serving_path)
     # Copy the model to pushing uri for archiving.
     io_utils.copy_dir(model_path, model_push.uri)
     self._MarkPushed(model_push,

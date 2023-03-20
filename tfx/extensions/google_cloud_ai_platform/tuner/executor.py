@@ -309,7 +309,7 @@ class _WorkerExecutor(base_executor.BaseExecutor):
           # https://cloud.google.com/vertex-ai/docs/training/distributed-training#cluster-spec-format
           cluster_spec['cluster']['workerpool0'][0].split(':'))
       self._is_chief = task_type == 'workerpool0'
-    elif task_type == 'chief' or task_type == 'workerpool0':
+    elif task_type in ['chief', 'workerpool0']:
       self._master_addr, self._master_port = (
           # CLUSTER_SPEC is different when only primary replica is present
           # in Vertex AI Training.

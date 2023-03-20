@@ -37,7 +37,7 @@ EVAL_BATCH_SIZE = 10
 
 
 def transformed_name(key):
-  return key + '_xf'
+  return f'{key}_xf'
 
 
 def make_serving_signatures(model,
@@ -129,12 +129,10 @@ def preprocessing_fn(inputs):
   Returns:
     Map from string feature key to transformed feature operations.
   """
-  outputs = {}
-
-  for key in FEATURE_KEYS:
-    # tft.scale_to_z_score computes the mean and variance of the given feature
-    # and scales the output based on the result.
-    outputs[transformed_name(key)] = tft.scale_to_z_score(inputs[key])
+  outputs = {
+      transformed_name(key): tft.scale_to_z_score(inputs[key])
+      for key in FEATURE_KEYS
+  }
   # TODO(b/157064428): Support label transformation for Keras.
   # Do not apply label transformation as it will result in wrong evaluation.
   outputs[transformed_name(_LABEL_KEY)] = inputs[_LABEL_KEY]

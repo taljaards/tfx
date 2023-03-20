@@ -53,7 +53,7 @@ class PipelineContext:
 
     # Stores channels available in the current pipeline scope.
     # Mapping from Channel object to compiled Channel proto.
-    self.channels = dict()
+    self.channels = {}
 
     # Node ID -> NodeContext
     self._node_contexts: Dict[str, NodeContext] = {}

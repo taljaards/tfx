@@ -53,16 +53,15 @@ def is_json_compatible(
         return False
       elif origin is dict and args[0] is str:
         return check(typehint=args[1], not_primitive=False)
-      # Handle top level optional.
       elif origin is Union and not_primitive:
-        return all([
-            arg is type(None) or
-            check(typehint=arg, not_primitive=True) for arg in args
-        ])
+        return all(
+            arg is type(None) or check(typehint=arg, not_primitive=True)
+            for arg in args)
       else:
-        return all([check(typehint=arg, not_primitive=False) for arg in args])
+        return all(check(typehint=arg, not_primitive=False) for arg in args)
     else:
       return not not_primitive and origin in _JSON_COMPATIBLE_PRIMITIVES
+
   return check(typehint, not_primitive=True)
 
 
@@ -114,19 +113,15 @@ def check_strict_json_compat(
       return True
     elif check_instance:
       if isinstance(in_obj, list):
-        return not expect_args or all(
-            [_check(o, expect_args[0]) for o in in_obj])
+        return not expect_args or all(_check(o, expect_args[0]) for o in in_obj)
       elif isinstance(in_obj, dict):
         return not expect_args or (
             all(_check(k, expect_args[0]) for k in in_obj.keys()) and
             all(_check(v, expect_args[1]) for v in in_obj.values()))
       else:
         return True
-    # For List -> List[X] and Dict -> Dict[X, Y].
     elif len(in_args) < len(expect_args):
       return False
-    # For Python 3.7, where Dict and List have args KT, KV, T. Return True
-    # whenever the expect type is Dict or List.
     else:
       return all(_check(*arg) for arg in zip(in_args, expect_args))
 

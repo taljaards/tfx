@@ -72,7 +72,6 @@ class PenguinPipelineKubeflowTest(test_case_utils.TfxTest,
       v2_dag_runner.run(kubeflow_pipeline)
       file_path = os.path.join(
           self.tmp_dir, penguin_pipeline_kubeflow._pipeline_definition_file)
-      self.assertTrue(fileio.exists(file_path))
     else:
       v1_dag_runner = orchestration.experimental.KubeflowDagRunner(
           config=orchestration.experimental.KubeflowDagRunnerConfig(
@@ -80,7 +79,8 @@ class PenguinPipelineKubeflowTest(test_case_utils.TfxTest,
               .get_default_kubeflow_metadata_config()))
       v1_dag_runner.run(kubeflow_pipeline)
       file_path = os.path.join(self.tmp_dir, 'penguin-kubeflow.tar.gz')
-      self.assertTrue(fileio.exists(file_path))
+
+    self.assertTrue(fileio.exists(file_path))
 
 
 if __name__ == '__main__':

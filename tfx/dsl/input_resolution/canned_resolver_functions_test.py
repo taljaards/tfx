@@ -63,16 +63,15 @@ class CannedResolverFunctionsTest(
     """Inserts artifacts with the given spans and versions into MLMD."""
     mlmd_context = self.put_context('pipeline', 'pipeline')
 
-    mlmd_artifacts = []
-    for span, version in zip(spans, versions):
-      mlmd_artifacts.append(
-          self.put_artifact(
-              artifact_type='DummyArtifact',
-              properties={
-                  'span': span,
-                  'version': version
-              }))
-
+    mlmd_artifacts = [
+        self.put_artifact(
+            artifact_type='DummyArtifact',
+            properties={
+                'span': span,
+                'version': version
+            },
+        ) for span, version in zip(spans, versions)
+    ]
     for mlmd_artifact in mlmd_artifacts:
       self.put_execution(
           'ProducerNode',

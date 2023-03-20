@@ -43,11 +43,12 @@ def main(unused_argv):
   prefix = f'gs://{_STORAGE_BUCKET.value}'
   sample_pipeline = pipeline.Pipeline(
       pipeline_name=_PIPELINE_NAME.value,
-      pipeline_root=prefix + '/tfx/pipelines',
+      pipeline_root=f'{prefix}/tfx/pipelines',
       components=[
-          tfx.components.ImportSchemaGen(prefix + '/data/schema.pbtxt')
+          tfx.components.ImportSchemaGen(f'{prefix}/data/schema.pbtxt')
       ],
-      enable_cache=False)
+      enable_cache=False,
+  )
   pipeline_ir = compiler.Compiler().compile(sample_pipeline)
   runtime_parameter_utils.substitute_runtime_parameter(
       pipeline_ir, {

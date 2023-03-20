@@ -81,18 +81,13 @@ def run_beam_pipeline():
 
   # Params used for running the Beam pipeline. Update these based on your
   # requirements.
-  params = {}
-  # Specify the projectid for BigQuery
-  params['projectId'] = 'my_project_id'
-  # Specify the datasetid for BigQuery
-  params['datasetId'] = 'my_dataset_id'
-  # Specify the table for BigQuery
-  params['tableId'] = 'my_table_id'
-  # Specify the list of flags for the Beam pipeline
-  params['flags'] = ['--temp_location=my_temp_location']
-  # Specify the desination for the generated examples.
-  params['destination'] = 'my_destination'
-
+  params = {
+      'projectId': 'my_project_id',
+      'datasetId': 'my_dataset_id',
+      'tableId': 'my_table_id',
+      'flags': ['--temp_location=my_temp_location'],
+      'destination': 'my_destination',
+  }
   table_spec = bigquery.TableReference(
       projectId=params['projectId'],
       datasetId=params['datasetId'],

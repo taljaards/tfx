@@ -33,7 +33,7 @@ def _shuffle(values):
 class _LineageUtils(test_case_utils.MlmdMixins):
 
   def _prepare_tfx_artifacts(self, n):
-    artifacts = [self.put_artifact('MyArtifact') for i in range(n)]
+    artifacts = [self.put_artifact('MyArtifact') for _ in range(n)]
     artifact_type = self.store.get_artifact_type('MyArtifact')
     return artifact_utils.deserialize_artifacts(artifact_type, artifacts)
 

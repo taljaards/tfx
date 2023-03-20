@@ -45,12 +45,12 @@ class BaseEndToEndTest(test_case_utils.TfxTest):
 
   def _uncomment(self, filepath: str, expressions: Iterable[str]) -> str:
     """Update given file by uncommenting the `expression`."""
-    replacements = [('# ' + s, s) for s in expressions]
+    replacements = [(f'# {s}', s) for s in expressions]
     return self._replaceFileContent(filepath, replacements)
 
   def _comment(self, filepath: str, expressions: Iterable[str]) -> str:
     """Update given file by commenting out the `expression`."""
-    replacements = [(s, '# ' + s) for s in expressions]
+    replacements = [(s, f'# {s}') for s in expressions]
     return self._replaceFileContent(filepath, replacements)
 
   def _replaceFileContent(self, filepath: str,
@@ -94,7 +94,7 @@ class BaseEndToEndTest(test_case_utils.TfxTest):
     """
     path = os.path.join(self._project_dir, filepath)
     result = []
-    commented_variables = ['# ' + variable + ' =' for variable in variables]
+    commented_variables = [f'# {variable} =' for variable in variables]
     in_variable_definition = False
 
     with open(path) as fp:
@@ -131,7 +131,7 @@ class BaseEndToEndTest(test_case_utils.TfxTest):
         '--model',
         model,
     ])
-    self.assertIn('Copying {} pipeline template'.format(model), result)
+    self.assertIn(f'Copying {model} pipeline template', result)
 
 
 class BaseLocalEndToEndTest(BaseEndToEndTest):
@@ -158,9 +158,8 @@ class BaseLocalEndToEndTest(BaseEndToEndTest):
         '--pipeline_path',
         'local_runner.py',
     ])
-    self.assertIn(
-        'Pipeline "{}" created successfully.'.format(self._pipeline_name),
-        result)
+    self.assertIn(f'Pipeline "{self._pipeline_name}" created successfully.',
+                  result)
 
   def _update_pipeline(self):
     result = self._runCli([
@@ -171,9 +170,8 @@ class BaseLocalEndToEndTest(BaseEndToEndTest):
         '--pipeline_path',
         'local_runner.py',
     ])
-    self.assertIn(
-        'Pipeline "{}" updated successfully.'.format(self._pipeline_name),
-        result)
+    self.assertIn(f'Pipeline "{self._pipeline_name}" updated successfully.',
+                  result)
 
   def _run_pipeline(self):
     self._runCli([

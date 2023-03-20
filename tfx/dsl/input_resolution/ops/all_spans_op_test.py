@@ -47,9 +47,7 @@ class AllSpansOpTest(tf.test.TestCase):
       dummy_artifact.version = version
 
     # Rotate the artifacts list so that it is not pre-sorted.
-    for _ in range(4):
-      artifacts.append(artifacts.pop(0))
-
+    artifacts.extend(artifacts.pop(0) for _ in range(4))
     actual = self._all_spans(artifacts)
     self.assertEqual(actual, [a10, a20, a31, a71, a82])
 

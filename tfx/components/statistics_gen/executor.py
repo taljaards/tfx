@@ -82,8 +82,9 @@ class Executor(base_beam_executor.BaseBeamExecutor):
         exec_properties.get(standard_component_specs.EXCLUDE_SPLITS_KEY,
                             'null')) or []
     if not isinstance(exclude_splits, list):
-      raise ValueError('exclude_splits in execution properties needs to be a '
-                       'list. Got %s instead.' % type(exclude_splits))
+      raise ValueError(
+          f'exclude_splits in execution properties needs to be a list. Got {type(exclude_splits)} instead.'
+      )
     # Setup output splits.
     examples = artifact_utils.get_single_instance(
         input_dict[standard_component_specs.EXAMPLES_KEY])
@@ -98,9 +99,8 @@ class Executor(base_beam_executor.BaseBeamExecutor):
         split_names)
 
     stats_options = options.StatsOptions()
-    stats_options_json = exec_properties.get(
-        standard_component_specs.STATS_OPTIONS_JSON_KEY)
-    if stats_options_json:
+    if stats_options_json := exec_properties.get(
+        standard_component_specs.STATS_OPTIONS_JSON_KEY):
       # TODO(b/150802589): Move jsonable interface to tfx_bsl and use
       # json_utils
       stats_options = options.StatsOptions.from_json(stats_options_json)
@@ -115,12 +115,11 @@ class Executor(base_beam_executor.BaseBeamExecutor):
         raise ValueError('A schema was provided as an input and the '
                          'stats_options exec_property also contains a schema '
                          'value. At most one of these may be set.')
-      else:
-        schema = io_utils.SchemaReader().read(
-            io_utils.get_only_uri_in_dir(
-                artifact_utils.get_single_uri(
-                    input_dict[standard_component_specs.SCHEMA_KEY])))
-        stats_options.schema = schema
+      schema = io_utils.SchemaReader().read(
+          io_utils.get_only_uri_in_dir(
+              artifact_utils.get_single_uri(
+                  input_dict[standard_component_specs.SCHEMA_KEY])))
+      stats_options.schema = schema
 
     tfxio_schema = None
     if stats_options.experimental_filter_read_paths:
@@ -153,7 +152,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
       )
       split_and_tfxio.append((split, tfxio))
     if not split_and_tfxio:
-      raise ValueError('No splits for examples artifact: %s' % examples)
+      raise ValueError(f'No splits for examples artifact: {examples}')
     with self._make_beam_pipeline() as p:
       for split, tfxio in split_and_tfxio:
         logging.info('Generating statistics for split %s.', split)
@@ -161,7 +160,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
             output_dict[standard_component_specs.STATISTICS_KEY], split)
         binary_stats_output_path = os.path.join(output_uri, DEFAULT_FILE_NAME)
 
-        data = p | 'TFXIORead[%s]' % split >> tfxio.BeamSource()
+        data = p | f'TFXIORead[{split}]' >> tfxio.BeamSource()
         if write_sharded_output:
           sharded_stats_output_prefix = os.path.join(
               output_uri, stats_artifact_utils.SHARDED_STATS_PREFIX +
@@ -172,10 +171,9 @@ class Executor(base_beam_executor.BaseBeamExecutor):
         else:
           write_transform = tfdv.WriteStatisticsToBinaryFile(
               binary_stats_output_path)
-        _ = (
-            data
-            | 'GenerateStatistics[%s]' % split >>
-            tfdv.GenerateStatistics(stats_options)
-            | 'WriteStatsOutput[%s]' % split >> write_transform)
+        _ = (data
+             | f'GenerateStatistics[{split}]' >>
+             tfdv.GenerateStatistics(stats_options)
+             | f'WriteStatsOutput[{split}]' >> write_transform)
         logging.info('Statistics for split %s written to %s.', split,
                      output_uri)

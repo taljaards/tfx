@@ -103,30 +103,27 @@ def ExecuteGraph(  # pylint: disable=invalid-name
   for spec in specs:
     # Construct Beam subgraph for a subgraph layer.
     if not spec.is_remote_op:
-      step_name = ("SubgraphLayerDoFn[Graph_%s][Outputs_%s]" %
-                   (remote_op_name, "_".join(spec.output_names)))
+      step_name = f'SubgraphLayerDoFn[Graph_{remote_op_name}][Outputs_{"_".join(spec.output_names)}]'
       pcoll = pcoll | step_name >> beam.ParDo(_SubgraphLayerDoFn(), spec,
                                               remote_op_name)
 
-    # Construct Beam subgraph for a remote op.
     else:
       # ExecutionSpec stores one remote op.
       child_remote_op_name = list(spec.output_names)[0]
-      step_descriptor = ("[Parent_%s][Child_%s]" %
-                         (remote_op_name, child_remote_op_name))
+      step_descriptor = f"[Parent_{remote_op_name}][Child_{child_remote_op_name}]"
 
-      step_name = "LoadRemoteGraphInputs%s" % step_descriptor
+      step_name = f"LoadRemoteGraphInputs{step_descriptor}"
       pcoll = pcoll | step_name >> _LoadRemoteGraphInputs(  # pylint: disable=no-value-for-parameter
           remote_op_name, child_remote_op_name, remote_op_name_to_graph_name,
           graph_to_remote_op_input_name_mapping)
 
       # A good place to add beam.Reshuffle() to prevent fusion.
-      step_name = "ExecuteGraph%s" % step_descriptor
+      step_name = f"ExecuteGraph{step_descriptor}"
       pcoll = pcoll | step_name >> ExecuteGraph(  # pylint: disable=no-value-for-parameter
           child_remote_op_name, remote_op_name_to_graph_name,
           graph_name_to_specs, graph_to_remote_op_input_name_mapping)
 
-      step_name = "ExtractRemoteGraphOutput%s" % step_descriptor
+      step_name = f"ExtractRemoteGraphOutput{step_descriptor}"
       pcoll = pcoll | step_name >> _ExtractRemoteGraphOutput(  # pylint: disable=no-value-for-parameter
           remote_op_name, child_remote_op_name, remote_op_name_to_graph_name,
           graph_name_to_specs)
@@ -192,7 +189,7 @@ class _SubgraphLayerDoFn(beam.DoFn):
 
 def _import_tensor_name(  # pylint: disable=invalid-name
     node_name: str) -> str:
-  return "import/%s:0" % node_name
+  return f"import/{node_name}:0"
 
 
 @beam.ptransform_fn
@@ -238,8 +235,7 @@ def _LoadRemoteGraphInputs(  # pylint: disable=invalid-name
   # _copy_tensor_value invokes a deepcopy on element.
   for child_graph_placeholder_name, parent_graph_input_name in mapping:
 
-    step_name = ("PrepareInput[Graph_%s][Input_%s]" %
-                 (child_remote_op_name, child_graph_placeholder_name))
+    step_name = f"PrepareInput[Graph_{child_remote_op_name}][Input_{child_graph_placeholder_name}]"
     pcoll = pcoll | step_name >> beam.Map(
         _copy_tensor_value, parent_remote_op_name,
         _import_tensor_name(parent_graph_input_name), child_remote_op_name,
@@ -298,10 +294,8 @@ def _ExtractRemoteGraphOutput(  # pylint: disable=invalid-name
   child_specs = graph_name_to_specs[child_graph_name]
   child_output_name = list(child_specs[-1].output_names)[0]
 
-  step_name_extract = ("ExtractOutput[Graph_%s][Output_%s]" %
-                       (child_remote_op_name, child_output_name))
-  step_name_clear = ("ClearIntermediateOutputs[Graph_%s]" %
-                     (child_remote_op_name))
+  step_name_extract = f"ExtractOutput[Graph_{child_remote_op_name}][Output_{child_output_name}]"
+  step_name_clear = f"ClearIntermediateOutputs[Graph_{child_remote_op_name}]"
 
   return (pcoll
           | step_name_extract >> beam.Map(

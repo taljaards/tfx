@@ -13,6 +13,7 @@
 # limitations under the License.
 """Shared utility functions for ResolverOps."""
 
+
 from typing import Dict, List, Optional, Sequence, Set
 
 from tfx import types
@@ -25,7 +26,7 @@ SPAN_PROPERTY = {'span': types.artifact.PropertyType.INT}
 
 VERSION_PROPERTY = {'version': types.artifact.PropertyType.INT}
 
-SPAN_AND_VERSION_PROPERTIES = {**SPAN_PROPERTY, **VERSION_PROPERTY}
+SPAN_AND_VERSION_PROPERTIES = SPAN_PROPERTY | VERSION_PROPERTY
 
 # Valid keys for the ResolverOp input/output dictionaries.
 EXAMPLES_KEY = 'examples'

@@ -50,11 +50,7 @@ class LatestPolicyModelOpTest(
       model_infra_blessing: Optional[List[types.Artifact]] = None,
   ):
     """Run the LatestPolicyModel ResolverOp."""
-    if model is None:
-      input_dict = {'model': self.artifacts}
-    else:
-      input_dict = {'model': model}
-
+    input_dict = {'model': self.artifacts} if model is None else {'model': model}
     if model_blessing is not None:
       input_dict['model_blessing'] = model_blessing
 
@@ -90,9 +86,9 @@ class LatestPolicyModelOpTest(
   ):
     # Check that the corresponding Policy keys are in the output dictionary.
     self.assertIn('model', output_dict)
-    if policy == _LATEST_EVALUATOR_BLESSED or policy == _LATEST_BLESSED:
+    if policy in [_LATEST_EVALUATOR_BLESSED, _LATEST_BLESSED]:
       self.assertIn('model_blessing', output_dict)
-    elif policy == _LATEST_INFRA_VALIDATOR_BLESSED or policy == _LATEST_BLESSED:
+    elif policy == _LATEST_INFRA_VALIDATOR_BLESSED:
       self.assertIn('model_infra_blessing', output_dict)
     elif policy == _LATEST_PUSHED:
       self.assertIn('model', output_dict)

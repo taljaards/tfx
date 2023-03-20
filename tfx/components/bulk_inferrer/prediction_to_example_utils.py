@@ -56,8 +56,8 @@ def convert(prediction_log: prediction_log_pb2.PredictionLog,
     if prediction_log.HasField('regress_log'):
       if not specs[0].HasField('regress_output'):
         raise ValueError(
-            'Regression predictions require a regress_output in output_example_spec: %s'
-            % output_example_spec)
+            f'Regression predictions require a regress_output in output_example_spec: {output_example_spec}'
+        )
       example = tf.train.Example()
       example.CopyFrom(
           prediction_log.regress_log.request.input.example_list.examples[0])
@@ -68,20 +68,20 @@ def convert(prediction_log: prediction_log_pb2.PredictionLog,
     elif prediction_log.HasField('classify_log'):
       if not specs[0].HasField('classify_output'):
         raise ValueError(
-            'Classification predictions require a classify_output in output_example_spec: %s'
-            % output_example_spec)
+            f'Classification predictions require a classify_output in output_example_spec: {output_example_spec}'
+        )
       example, output_features = _parse_classify_log(
           prediction_log.classify_log, specs[0].classify_output)
     elif prediction_log.HasField('predict_log'):
       if not specs[0].HasField('predict_output'):
         raise ValueError(
-            'Predict predictions require a predict_output in output_example_spec: %s'
-            % output_example_spec)
+            f'Predict predictions require a predict_output in output_example_spec: {output_example_spec}'
+        )
       example, output_features = _parse_predict_log(prediction_log.predict_log,
                                                     specs[0].predict_output)
     else:
-      raise ValueError('Unsupported prediction type in prediction_log: %s' %
-                       prediction_log)
+      raise ValueError(
+          f'Unsupported prediction type in prediction_log: {prediction_log}')
 
   return _add_columns(example, output_features)
 
@@ -106,8 +106,7 @@ def _parse_multi_inference_log(
       output_features.append((spec.regress_output.value_column,
                               [result.regression_result.regressions[0].value]))
     else:
-      raise ValueError('Unsupported multi_inferrence_log: %s' %
-                       multi_inference_log)
+      raise ValueError(f'Unsupported multi_inferrence_log: {multi_inference_log}')
   return example, output_features
 
 
@@ -144,15 +143,15 @@ def _parse_predict_log(
   """Parses PredictLog."""
   _, input_tensor_proto = next(iter(predict_log.request.inputs.items()))
   example = tf.train.Example.FromString(input_tensor_proto.string_val[0])
-  outputs = predict_log.response.outputs
   output_features = []
+  outputs = predict_log.response.outputs
   for col in predict_output_spec.output_columns:
     output_tensor_proto = outputs.get(col.output_key)
     output_values = np.squeeze(tf.make_ndarray(output_tensor_proto))
     if output_values.ndim > 1:
       raise ValueError(
-          'All output values must be convertible to 1D arrays, but %s was '
-          'not. value was %s.' % (col.output_key, output_values))
+          f'All output values must be convertible to 1D arrays, but {col.output_key} was not. value was {output_values}.'
+      )
     if output_values.ndim == 1:
       # Convert the output_values to a list.
       output_values = output_values.tolist()

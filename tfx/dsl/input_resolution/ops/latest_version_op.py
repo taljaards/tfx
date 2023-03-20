@@ -66,20 +66,17 @@ class LatestVersion(
     if not valid_artifacts:
       return []
 
-    # Consider span in the sorting only if all the artifacts have the span
-    # PROPERTY.
-    key = lambda a: (  # pylint: disable=g-long-lambda
-        a.span,
-        a.version,
-        a.mlmd_artifact.create_time_since_epoch,
-        a.id,
+    key = next(
+        (lambda a: (a.version, a.id) for artifact in valid_artifacts
+         if ('span' not in artifact.PROPERTIES or artifact.PROPERTIES['span'].
+             type != types.artifact.PropertyType.INT)),
+        lambda a: (  # pylint: disable=g-long-lambda
+            a.span,
+            a.version,
+            a.mlmd_artifact.create_time_since_epoch,
+            a.id,
+        ),
     )
-    for artifact in valid_artifacts:
-      if ('span' not in artifact.PROPERTIES or
-          artifact.PROPERTIES['span'].type != types.artifact.PropertyType.INT):
-        key = lambda a: (a.version, a.id)
-        break
-
     # Artifacts are sorted by key in ASCending order, with the last n returned.
     valid_artifacts.sort(key=key)
     return valid_artifacts[-self.n:]

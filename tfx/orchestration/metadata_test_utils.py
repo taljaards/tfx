@@ -61,12 +61,12 @@ class MetadataTest(tf.test.TestCase):
 
   def _get_all_runs(self, metadata_handler: metadata.Metadata,
                     pipeline_name: str):
-    result = []
-    for context in metadata_handler.store.get_contexts_by_type(
-        metadata._CONTEXT_TYPE_PIPELINE_RUN):  # pylint: disable=protected-access
-      if context.properties['pipeline_name'].string_value == pipeline_name:
-        result.append(context.properties['run_id'].string_value)
-    return result
+    return [
+        context.properties['run_id'].string_value
+        for context in metadata_handler.store.get_contexts_by_type(
+            metadata._CONTEXT_TYPE_PIPELINE_RUN)
+        if context.properties['pipeline_name'].string_value == pipeline_name
+    ]
 
   def _get_execution_states(self, metadata_handler: metadata.Metadata,
                             pipeline_info: data_types.PipelineInfo):

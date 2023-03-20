@@ -113,4 +113,4 @@ def _get_command_line_argument_type(
     return placeholders.InputUriPlaceholder(command.inputPath)
   if command.HasField('outputPath'):
     return placeholders.OutputUriPlaceholder(command.outputPath)
-  raise ValueError('Unrecognized command %s' % command)
+  raise ValueError(f'Unrecognized command {command}')

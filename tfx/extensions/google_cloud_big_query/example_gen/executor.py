@@ -37,11 +37,9 @@ class _BigQueryConverter:
     """
     client = bigquery.Client(project=project_id)
     # Dummy query to get the type information for each field.
-    query_job = client.query('SELECT * FROM ({}) LIMIT 0'.format(query))
+    query_job = client.query(f'SELECT * FROM ({query}) LIMIT 0')
     results = query_job.result()
-    self._type_map = {}
-    for field in results.schema:
-      self._type_map[field.name] = field.field_type
+    self._type_map = {field.name: field.field_type for field in results.schema}
 
   def RowToExample(self, instance: Dict[str, Any]) -> tf.train.Example:
     """Convert bigquery result row to tf example."""

@@ -426,9 +426,7 @@ def join(placeholders: Sequence[Union[str, Placeholder]],
     return ''
 
   def joiner(a, b):
-    if separator:
-      return a + separator + b
-    return a + b
+    return a + separator + b if separator else a + b
 
   return functools.reduce(joiner, placeholders)
 
@@ -482,30 +480,27 @@ class _ProtoAccessiblePlaceholder(Placeholder, abc.ABC):
 
   def __getattr__(self: _T, field_name: str) -> _T:
     proto_access_field = f'.{field_name}'
-    if self._operators and isinstance(
-        self._operators[-1],
-        _ProtoOperator) and self._operators[-1].can_append_field_path():
-      result = self._clone_and_use_operators([])  # makes a copy of self
-      result._operators[-1].append_field_path(proto_access_field)
-      return result
-    else:
+    if (not self._operators
+        or not isinstance(self._operators[-1], _ProtoOperator)
+        or not self._operators[-1].can_append_field_path()):
       return self._clone_and_use_operators(
           [_ProtoOperator(proto_field_path=proto_access_field)])
+    result = self._clone_and_use_operators([])  # makes a copy of self
+    result._operators[-1].append_field_path(proto_access_field)
+    return result
 
   def __getitem__(self: _T, key: Union[int, str]) -> _T:
     if isinstance(key, int):
       return self._clone_and_use_operators([_IndexOperator(key)])
-    else:
-      proto_access_field = f'[{key!r}]'
-      if self._operators and isinstance(
-          self._operators[-1],
-          _ProtoOperator) and self._operators[-1].can_append_field_path():
-        result = self._clone_and_use_operators([])  # makes a copy of self
-        result._operators[-1].append_field_path(proto_access_field)
-        return result
-      else:
-        return self._clone_and_use_operators(
-            [_ProtoOperator(proto_field_path=proto_access_field)])
+    proto_access_field = f'[{key!r}]'
+    if (not self._operators
+        or not isinstance(self._operators[-1], _ProtoOperator)
+        or not self._operators[-1].can_append_field_path()):
+      return self._clone_and_use_operators(
+          [_ProtoOperator(proto_field_path=proto_access_field)])
+    result = self._clone_and_use_operators([])  # makes a copy of self
+    result._operators[-1].append_field_path(proto_access_field)
+    return result
 
   def serialize(self: _T, serialization_format: ProtoSerializationFormat) -> _T:
     """Serialize the proto-valued placeholder using the provided scheme.
@@ -807,8 +802,8 @@ class ListPlaceholder(Placeholder):
   def _validate_type(self, input_placeholders: List['Placeholder']):
     for input_placeholder in input_placeholders:
       if not isinstance(input_placeholder, Placeholder):
-        raise ValueError('Unexpected input placeholder type: %s.' %
-                         type(input_placeholder))
+        raise ValueError(
+            f'Unexpected input placeholder type: {type(input_placeholder)}.')
 
   def serialize_list(self: _T,
                      serialization_format: ListSerializationFormat) -> _T:

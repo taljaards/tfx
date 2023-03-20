@@ -123,7 +123,7 @@ class ExecutorTest(tf.test.TestCase):
     mock_runner.get_service_name_and_api_version.return_value = ('ml', 'v1')
     version = self._model_push.get_string_custom_property('pushed_version')
     mock_runner.deploy_model_for_aip_prediction.return_value = (
-        'projects/project_id/models/model_name/versions/{}'.format(version))
+        f'projects/project_id/models/model_name/versions/{version}')
 
     self._executor.Do(self._input_dict, self._output_dict,
                       self._serialize_custom_config_under_test())
@@ -141,7 +141,8 @@ class ExecutorTest(tf.test.TestCase):
     self.assertPushed()
     self.assertEqual(
         self._model_push.get_string_custom_property('pushed_destination'),
-        'projects/project_id/models/model_name/versions/{}'.format(version))
+        f'projects/project_id/models/model_name/versions/{version}',
+    )
 
   @mock.patch(
       'tfx.extensions.google_cloud_ai_platform.pusher.executor.discovery')
@@ -199,7 +200,7 @@ class ExecutorTest(tf.test.TestCase):
     mock_runner.get_service_name_and_api_version.return_value = ('ml', 'v1')
     version = self._model_push.get_string_custom_property('pushed_version')
     mock_runner.deploy_model_for_aip_prediction.return_value = (
-        'projects/project_id/models/model_name/versions/{}'.format(version))
+        f'projects/project_id/models/model_name/versions/{version}')
 
     self._executor.Do(self._input_dict, self._output_dict,
                       self._serialize_custom_config_under_test())
@@ -217,7 +218,8 @@ class ExecutorTest(tf.test.TestCase):
     self.assertPushed()
     self.assertEqual(
         self._model_push.get_string_custom_property('pushed_destination'),
-        'projects/project_id/models/model_name/versions/{}'.format(version))
+        f'projects/project_id/models/model_name/versions/{version}',
+    )
 
   @mock.patch.object(executor, 'runner', autospec=True)
   def testDoBlessed_Vertex(self, mock_runner):

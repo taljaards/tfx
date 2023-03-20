@@ -87,8 +87,7 @@ def row_to_example(  # pylint: disable=invalid-name
     else:
       # TODO(jyzhao): support more types.
       raise RuntimeError(
-          'BigQuery column "{}" has non-supported type {}.'.format(key,
-                                                                   data_type))
+          f'BigQuery column "{key}" has non-supported type {data_type}.')
 
   return tf.train.Example(features=tf.train.Features(feature=feature))
 

@@ -151,8 +151,7 @@ class _Dataset:
     self._file_pattern = file_pattern
     file_pattern_suffix = os.path.join(
         *file_pattern.split(os.sep)[-self._FILE_PATTERN_SUFFIX_LENGTH:])
-    dataset_identifier = file_pattern_suffix + '-' + hashlib.sha256(
-        file_pattern.encode()).hexdigest()
+    dataset_identifier = f'{file_pattern_suffix}-{hashlib.sha256(file_pattern.encode()).hexdigest()}'
     self._dataset_key = analyzer_cache.DatasetKey(dataset_identifier)
     self._file_format = file_format
     self._data_format = data_format
@@ -285,15 +284,14 @@ def _FilterInternalColumn(
   if (internal_column_index is None and
       _TRANSFORM_INTERNAL_FEATURE_FOR_KEY not in record_batch.schema.names):
     return record_batch
-  else:
-    internal_column_index = (
-        internal_column_index or
-        record_batch.schema.names.index(_TRANSFORM_INTERNAL_FEATURE_FOR_KEY))
-    # Making shallow copy since input modification is not allowed.
-    filtered_columns = list(record_batch.columns)
-    filtered_columns.pop(internal_column_index)
-    filtered_schema = record_batch.schema.remove(internal_column_index)
-    return pa.RecordBatch.from_arrays(filtered_columns, schema=filtered_schema)
+  internal_column_index = (
+      internal_column_index or
+      record_batch.schema.names.index(_TRANSFORM_INTERNAL_FEATURE_FOR_KEY))
+  # Making shallow copy since input modification is not allowed.
+  filtered_columns = list(record_batch.columns)
+  filtered_columns.pop(internal_column_index)
+  filtered_schema = record_batch.schema.remove(internal_column_index)
+  return pa.RecordBatch.from_arrays(filtered_columns, schema=filtered_schema)
 
 
 class Executor(base_beam_executor.BaseBeamExecutor):
@@ -376,9 +374,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
                 value_utils.GetSoleValue(
                     inputs, labels.STATS_OPTIONS_UPDATER_FN, strict=False)
         }, standard_component_specs.STATS_OPTIONS_UPDATER_FN_KEY)
-    if fn is None:
-      return fn
-    return executor_utils.MaybeBindCustomConfig(inputs, fn)
+    return fn if fn is None else executor_utils.MaybeBindCustomConfig(inputs, fn)
 
   def Do(self, input_dict: Dict[str, List[types.Artifact]],
          output_dict: Dict[str, List[types.Artifact]],
@@ -496,8 +492,7 @@ class Executor(base_beam_executor.BaseBeamExecutor):
         exec_properties.get(standard_component_specs.FORCE_TF_COMPAT_V1_KEY, 0))
 
     # Make sure user packages get propagated to the remote Beam worker.
-    user_module_key = exec_properties.get(
-        standard_component_specs.MODULE_PATH_KEY, None)
+    user_module_key = exec_properties.get(standard_component_specs.MODULE_PATH_KEY)
     _, extra_pip_packages = udf_utils.decode_user_module_key(user_module_key)
     for pip_package_path in extra_pip_packages:
       local_pip_package_path = io_utils.ensure_local(pip_package_path)
@@ -947,13 +942,11 @@ class TransformProcessor:
                 self._preprocessing_fn, self._feature_spec_or_typespec,
                 dataset_keys_list, input_cache, self._force_tf_compat_v1))
 
-      new_analyze_data_dict = {}
-      for dataset in self._analyze_data_list:
-        if dataset.dataset_key in filtered_analysis_dataset_keys:
-          new_analyze_data_dict[dataset.dataset_key] = dataset
-        else:
-          new_analyze_data_dict[dataset.dataset_key] = None
-
+      new_analyze_data_dict = {
+          dataset.dataset_key: dataset
+          if dataset.dataset_key in filtered_analysis_dataset_keys else None
+          for dataset in self._analyze_data_list
+      }
       return (new_analyze_data_dict, input_cache, estimated_stage_count)
 
   def Transform(self, inputs: Mapping[str, Any], outputs: Mapping[str, Any],
@@ -1056,8 +1049,7 @@ class TransformProcessor:
     ]
     stats_output_paths = {}
     for label in stats_labels_list:
-      value = value_utils.GetSoleValue(outputs, label, strict=False)
-      if value:
+      if value := value_utils.GetSoleValue(outputs, label, strict=False):
         stats_output_paths[label] = value
     if stats_output_paths and len(stats_output_paths) != len(stats_labels_list):
       raise ValueError('Either all stats_output_paths should be'
@@ -1074,14 +1066,12 @@ class TransformProcessor:
 
     if len(analyze_data_paths) != len(analyze_paths_file_formats):
       raise ValueError(
-          'size of analyze_data_paths and '
-          'analyze_paths_file_formats do not match: {} v.s {}'.format(
-              len(analyze_data_paths), len(analyze_paths_file_formats)))
+          f'size of analyze_data_paths and analyze_paths_file_formats do not match: {len(analyze_data_paths)} v.s {len(analyze_paths_file_formats)}'
+      )
     if len(transform_data_paths) != len(transform_paths_file_formats):
       raise ValueError(
-          'size of transform_data_paths and '
-          'transform_paths_file_formats do not match: {} v.s {}'.format(
-              len(transform_data_paths), len(transform_paths_file_formats)))
+          f'size of transform_data_paths and transform_paths_file_formats do not match: {len(transform_data_paths)} v.s {len(transform_paths_file_formats)}'
+      )
 
     can_process_analysis_jointly = not bool(output_cache_dir)
     analyze_data_list = self._MakeDatasetList(analyze_data_paths,
@@ -1118,7 +1108,9 @@ class TransformProcessor:
       if analyze_input_columns:
         logging.warning(
             'Not using the in-place Transform because the following features '
-            'require analyzing: %s', tuple(c for c in analyze_input_columns))
+            'require analyzing: %s',
+            tuple(analyze_input_columns),
+        )
       else:
         logging.warning(
             'Using the in-place Transform since disable_statistics=True, '
@@ -1130,8 +1122,7 @@ class TransformProcessor:
         # TODO(b/122478841): Writes status to status file.
         return
 
-    stats_options_updater_fn = (stats_options_updater_fn
-                                if stats_options_updater_fn else lambda _, x: x)
+    stats_options_updater_fn = stats_options_updater_fn or (lambda _, x: x)
 
     materialization_format = (
         transform_paths_file_formats[-1] if materialize_output_paths else None)

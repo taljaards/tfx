@@ -73,10 +73,10 @@ def build_value_dict(
     metadata_value_dict: Mapping[str, metadata_store_pb2.Value]
 ) -> Dict[str, types.Property]:
   """Converts MLMD value dict into plain value dict."""
-  result = {}
-  for k, v in metadata_value_dict.items():
-    result[k] = getattr(v, v.WhichOneof('value'))
-  return result
+  return {
+      k: getattr(v, v.WhichOneof('value'))
+      for k, v in metadata_value_dict.items()
+  }
 
 
 def build_metadata_value_dict(
@@ -156,7 +156,7 @@ def build_parsed_value_dict(
     return result
   for k, v in value_dict.items():
     if not v.HasField('field_value'):
-      raise RuntimeError('Field value missing for %s' % k)
+      raise RuntimeError(f'Field value missing for {k}')
     result[k] = get_parsed_value(v.field_value,
                                  v.schema if v.HasField('schema') else None)
   return result
@@ -184,7 +184,7 @@ def get_metadata_value_type(
   elif isinstance(value, pipeline_pb2.Value):
     which = value.WhichOneof('value')
     if which != 'field_value':
-      raise RuntimeError('Expecting field_value but got %s.' % value)
+      raise RuntimeError(f'Expecting field_value but got {value}.')
 
     value_type = value.field_value.WhichOneof('value')
     if value_type == 'int_value':
@@ -196,11 +196,11 @@ def get_metadata_value_type(
     elif value_type == 'proto_value':
       return metadata_store_pb2.PROTO
     else:
-      raise ValueError('Unexpected value type %s' % value_type)
+      raise ValueError(f'Unexpected value type {value_type}')
   elif isinstance(value, (str, bool, message.Message, list, dict)):
     return metadata_store_pb2.STRING
   else:
-    raise ValueError('Unexpected value type %s' % type(value))
+    raise ValueError(f'Unexpected value type {type(value)}')
 
 
 def get_value(tfx_value: pipeline_pb2.Value) -> types.Property:
@@ -217,7 +217,7 @@ def get_value(tfx_value: pipeline_pb2.Value) -> types.Property:
   """
   which = tfx_value.WhichOneof('value')
   if which != 'field_value':
-    raise RuntimeError('Expecting field_value but got %s.' % tfx_value)
+    raise RuntimeError(f'Expecting field_value but got {tfx_value}.')
 
   return getattr(tfx_value.field_value,
                  tfx_value.field_value.WhichOneof('value'))
@@ -280,8 +280,8 @@ def set_parameter_value(
   """
 
   def get_value_and_set_type(
-      value: types.ExecPropertyTypes,
-      value_type: pipeline_pb2.Value.Schema.ValueType) -> types.Property:
+        value: types.ExecPropertyTypes,
+        value_type: pipeline_pb2.Value.Schema.ValueType) -> types.Property:
     """Returns serialized value and sets value_type."""
     if isinstance(value, bool):
       if set_schema:
@@ -314,7 +314,7 @@ def set_parameter_value(
     elif isinstance(value, (int, float, str)):
       return value
     else:
-      raise ValueError('Unexpected type %s' % type(value))
+      raise ValueError(f'Unexpected type {type(value)}')
 
   if isinstance(value, int) and not isinstance(value, bool):
     parameter_value.field_value.int_value = value
@@ -325,7 +325,7 @@ def set_parameter_value(
   elif isinstance(value, pipeline_pb2.Value):
     which = value.WhichOneof('value')
     if which != 'field_value':
-      raise ValueError('Expecting field_value but got %s.' % value)
+      raise ValueError(f'Expecting field_value but got {value}.')
     parameter_value.field_value.CopyFrom(value.field_value)
   elif isinstance(value, bool):
     parameter_value.schema.value_type.boolean_type.SetInParent()
@@ -334,6 +334,6 @@ def set_parameter_value(
     parameter_value.field_value.string_value = get_value_and_set_type(
         value, parameter_value.schema.value_type)
   else:
-    raise ValueError('Unexpected type %s' % type(value))
+    raise ValueError(f'Unexpected type {type(value)}')
 
   return parameter_value

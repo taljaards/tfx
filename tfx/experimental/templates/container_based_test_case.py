@@ -67,14 +67,13 @@ class BaseContainerBasedEndToEndTest(test_utils.BaseEndToEndTest):
     logging.info('Pipeline: %s', self._pipeline_name)
 
     if ':' not in self._BASE_CONTAINER_IMAGE:
-      self._base_container_image = '{}:{}'.format(self._BASE_CONTAINER_IMAGE,
-                                                  random_id)
+      self._base_container_image = f'{self._BASE_CONTAINER_IMAGE}:{random_id}'
       self._prepare_base_container_image()
     else:
       self._base_container_image = self._BASE_CONTAINER_IMAGE
 
-    self._target_container_image = 'gcr.io/{}/{}'.format(
-        self._GCP_PROJECT_ID, self._pipeline_name)
+    self._target_container_image = (
+        f'gcr.io/{self._GCP_PROJECT_ID}/{self._pipeline_name}')
 
   def tearDown(self):
     super().tearDown()
@@ -138,8 +137,7 @@ class BaseKubeflowEndToEndTest(BaseContainerBasedEndToEndTest):
     self._delete_pipeline()
 
   def _get_endpoint(self, namespace):
-    cmd = 'kubectl describe configmap inverse-proxy-config -n {}'.format(
-        namespace)
+    cmd = f'kubectl describe configmap inverse-proxy-config -n {namespace}'
     output = subprocess.check_output(cmd.split())
     for line in output.decode('utf-8').split('\n'):
       if line.endswith('googleusercontent.com'):
@@ -167,7 +165,7 @@ class BaseKubeflowEndToEndTest(BaseContainerBasedEndToEndTest):
   def _parse_run_id(self, output: str):
     run_id_lines = [
         line for line in output.split('\n')
-        if '| {} |'.format(self._pipeline_name) in line
+        if f'| {self._pipeline_name} |' in line
     ]
     self.assertLen(run_id_lines, 1)
     return run_id_lines[0].split('|')[2].strip()
@@ -233,8 +231,7 @@ class BaseKubeflowEndToEndTest(BaseContainerBasedEndToEndTest):
                                                   self._namespace)
 
   def _check_telemetry_label(self):
-    file_path = os.path.join(self._project_dir,
-                             '{}.tar.gz'.format(self._pipeline_name))
+    file_path = os.path.join(self._project_dir, f'{self._pipeline_name}.tar.gz')
     self.assertTrue(fileio.exists(file_path))
 
     with tarfile.TarFile.open(file_path).extractfile(

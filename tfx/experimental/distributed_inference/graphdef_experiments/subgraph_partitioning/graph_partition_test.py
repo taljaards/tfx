@@ -118,7 +118,7 @@ def _get_golden_subgraph(graph_name, spec):
 
 
 def _generate_unique_filename(input_names):
-  return 'input_names-%s.pbtxt' % ('-'.join(sorted(input_names)))
+  return f"input_names-{'-'.join(sorted(input_names))}.pbtxt"
 
 
 def _get_node_names(graph_def):

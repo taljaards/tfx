@@ -200,13 +200,13 @@ class ResolverTestCase(
       contexts: Sequence[metadata_store_pb2.Context] = (),
   ) -> List[types.Artifact]:
     """Build Examples artifacts and add an ExampleGen execution to MLMD."""
-    examples = []
-    for span, version in spans_and_versions:
-      examples.append(
-          self.prepare_tfx_artifact(
-              Examples, properties={'span': span, 'version': version}
-          )
-      )
+    examples = [
+        self.prepare_tfx_artifact(
+            Examples, properties={
+                'span': span,
+                'version': version
+            }) for span, version in spans_and_versions
+    ]
     self.put_execution(
         'ExampleGen',
         inputs={},

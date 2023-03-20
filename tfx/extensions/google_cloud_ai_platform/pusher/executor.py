@@ -102,8 +102,7 @@ class Executor(tfx_pusher_executor.Executor):
         {telemetry_utils.LABEL_TFX_EXECUTOR: executor_class_path}):
       job_labels = telemetry_utils.make_labels_dict()
 
-    enable_vertex = custom_config.get(constants.ENABLE_VERTEX_KEY)
-    if enable_vertex:
+    if enable_vertex := custom_config.get(constants.ENABLE_VERTEX_KEY):
       if custom_config.get(constants.ENDPOINT_ARGS_KEY):
         deprecation_utils.warn_deprecated(
             '\'endpoint\' is deprecated. Please use'
@@ -119,7 +118,7 @@ class Executor(tfx_pusher_executor.Executor):
       # Note that we're adding "v" prefix as Cloud AI Prediction only allows the
       # version name that starts with letters, and contains letters, digits,
       # underscore only.
-      model_name = 'v{}'.format(int(time.time()))
+      model_name = f'v{int(time.time())}'
       container_image_uri = custom_config.get(
           constants.VERTEX_CONTAINER_IMAGE_URI_KEY)
 
@@ -147,7 +146,7 @@ class Executor(tfx_pusher_executor.Executor):
       # Note that we're adding "v" prefix as Cloud AI Prediction only allows the
       # version name that starts with letters, and contains letters, digits,
       # underscore only.
-      model_version = 'v{}'.format(int(time.time()))
+      model_version = f'v{int(time.time())}'
       endpoint = endpoint or runner.DEFAULT_ENDPOINT
       service_name, api_version = runner.get_service_name_and_api_version(
           ai_platform_serving_args)

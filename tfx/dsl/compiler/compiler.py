@@ -86,12 +86,10 @@ class Compiler:
       # Sort node ids so that compiler generates consistent results.
       node.upstream_nodes.extend(sorted(upstreams))
 
-    # PipelineBegin node's downstream nodes are the nodes in the inner pipeline
-    # that consumes pipeline's input channels.
-    result = set()
-    for inner_node in p.components:
-      if _begin_node_is_upstream(inner_node, p):
-        result.add(inner_node.id)
+    result = {
+        inner_node.id
+        for inner_node in p.components if _begin_node_is_upstream(inner_node, p)
+    }
     # Sort node ids so that compiler generates consistent results.
     node.downstream_nodes.extend(sorted(result))
 
@@ -232,8 +230,7 @@ class Compiler:
 
     # Step 8: Node execution options
     node.execution_options.caching_options.enable_cache = enable_cache
-    node_execution_options = tfx_node.node_execution_options
-    if node_execution_options:
+    if node_execution_options := tfx_node.node_execution_options:
       assert isinstance(node_execution_options,
                         execution_options_utils.NodeExecutionOptions)
       if (node_execution_options.trigger_strategy or
@@ -347,14 +344,12 @@ class Compiler:
         pipeline_node_pb = self.compile(node, pipeline_ctx)
         pipeline_or_node = pipeline_pb.PipelineOrNode()
         pipeline_or_node.sub_pipeline.CopyFrom(pipeline_node_pb)
-        pipeline_pb.nodes.append(pipeline_or_node)
       else:
         node_pb = self._compile_node(node, pipeline_ctx, deployment_config,
                                      tfx_pipeline.enable_cache)
         pipeline_or_node = pipeline_pb.PipelineOrNode()
         pipeline_or_node.pipeline_node.CopyFrom(node_pb)
-        pipeline_pb.nodes.append(pipeline_or_node)
-
+      pipeline_pb.nodes.append(pipeline_or_node)
     # Inner pipelines of a composable pipeline, or a outmost pipeline with
     # pipeline-level outputs have pipeline end nodes.
     if not pipeline_ctx.is_root or tfx_pipeline._outputs:  # pylint: disable=protected-access
@@ -513,11 +508,8 @@ def _set_node_parameters(node: pipeline_pb2.PipelineNode,
       compiler_utils.set_runtime_parameter_pb(parameter_value.runtime_parameter,
                                               value.name, value.ptype,
                                               value.default)
-    # RuntimeInfoPlaceholder passes Execution parameters of Facade
-    # components.
     elif isinstance(value, placeholder.RuntimeInfoPlaceholder):
       parameter_value.placeholder.CopyFrom(value.encode())
-    # ChannelWrappedPlaceholder passes dynamic execution parameter.
     elif isinstance(value, placeholder.ChannelWrappedPlaceholder):
       compiler_utils.validate_dynamic_exec_ph_operator(value)
       parameter_value.placeholder.CopyFrom(
@@ -530,8 +522,8 @@ def _set_node_parameters(node: pipeline_pb2.PipelineNode,
         data_types_utils.set_parameter_value(parameter_value, value)
       except ValueError as e:
         raise ValueError(
-            "Component {} got unsupported parameter {} with type {}.".format(
-                tfx_node.id, key, type(value))) from e
+            f"Component {tfx_node.id} got unsupported parameter {key} with type {type(value)}."
+        ) from e
 
 
 def _find_runtime_upstream_node_ids(
@@ -589,7 +581,5 @@ def _end_node_is_downstream(node: base_node.BaseNode,
   # Given a node N inside a pipeline P, N needs to declare P_end as its
   # downstream node iff N produces at least a same output as P.
   pipeline_outputs_set = {c.wrapped for c in tfx_pipeline.outputs.values()}
-  for node_output in node.outputs.values():
-    if node_output in pipeline_outputs_set:
-      return True
-  return False
+  return any(node_output in pipeline_outputs_set
+             for node_output in node.outputs.values())

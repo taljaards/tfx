@@ -44,9 +44,7 @@ def compare_dirs(dir1: str, dir2: str):
     a boolean whether the specified directories have the same file contents.
   """
   dir_cmp = filecmp.dircmp(dir1, dir2)
-  if not all(
-      not v
-      for v in (dir_cmp.left_only, dir_cmp.right_only, dir_cmp.funny_files)):
+  if any((dir_cmp.left_only, dir_cmp.right_only, dir_cmp.funny_files)):
     return False
   _, mismatch, errors = filecmp.cmpfiles(
       dir1, dir2, dir_cmp.common_files, shallow=False)
@@ -74,13 +72,12 @@ def _compare_relative_difference(value: float, expected_value: float,
     a boolean indicating whether the relative difference is within the
     threshold.
   """
-  if value != expected_value:
-    if expected_value:
-      relative_diff = abs(value - expected_value) / abs(expected_value)
-      if not (expected_value and relative_diff <= threshold):
-        logging.warning('Relative difference %f exceeded threshold %f',
-                        relative_diff, threshold)
-        return False
+  if value != expected_value and expected_value:
+    relative_diff = abs(value - expected_value) / abs(expected_value)
+    if relative_diff > threshold:
+      logging.warning('Relative difference %f exceeded threshold %f',
+                      relative_diff, threshold)
+      return False
   return True
 
 
@@ -168,11 +165,11 @@ def _group_metric_by_slice(
   Returns:
     a slice map that holds a dictionary of metric and value for slices.
   """
-  slice_map = {}
-  for metric in eval_result.slicing_metrics:
-    slice_map[metric[0]] = {k: v['doubleValue']
-                            for k, v in metric[1][''][''].items()}
-  return slice_map  # pytype: disable=bad-return-type  # strict_namedtuple_checks
+  return {
+      metric[0]: {k: v['doubleValue']
+                  for k, v in metric[1][''][''].items()}
+      for metric in eval_result.slicing_metrics
+  }
 
 
 def compare_eval_results(output_uri: str, expected_uri: str, threshold: float,

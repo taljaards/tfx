@@ -41,16 +41,18 @@ class _RowToContextFeatureAndExample(beam.DoFn):
   def process(
       self, instance: Dict[str, Any]
   ) -> Iterable[Tuple[bytes, tf.train.Example]]:
-    context_feature = dict((k, instance[k])
-                           for k in instance.keys()
-                           if k in self._context_feature_fields)
+    context_feature = {
+        k: instance[k]
+        for k in instance if k in self._context_feature_fields
+    }
     context_feature_proto = utils.row_to_example(self._type_map,
                                                  context_feature)
     context_feature_key = context_feature_proto.SerializeToString(
         deterministic=True)
-    example_feature = dict((k, instance[k])
-                           for k in instance.keys()
-                           if k not in self._context_feature_fields)
+    example_feature = {
+        k: instance[k]
+        for k in instance if k not in self._context_feature_fields
+    }
     example_feature_value = utils.row_to_example(self._type_map,
                                                  example_feature)
     yield (context_feature_key, example_feature_value)
@@ -98,7 +100,7 @@ def _BigQueryToElwc(pipeline: beam.Pipeline, exec_properties: Dict[str, Any],
 
   client = bigquery.Client(project=project)
   # Dummy query to get the type information for each field.
-  query_job = client.query('SELECT * FROM ({}) LIMIT 0'.format(split_pattern))
+  query_job = client.query(f'SELECT * FROM ({split_pattern}) LIMIT 0')
   results = query_job.result()
   type_map = {}
   context_feature_fields = set(elwc_config.context_feature_fields)

@@ -88,11 +88,10 @@ class ExecutorTest(tft_unit.TransformTestCase):
       return sum(
           1 for _ in tf.data.TFRecordDataset(files, compression_type='GZIP'))
     else:
-      result = 0
-      for file in files:
-        result += sum(1 for _ in tf.compat.v1.io.tf_record_iterator(
-            file, tf.io.TFRecordOptions(compression_type='GZIP')))
-      return result
+      return sum(
+          sum(1 for _ in tf.compat.v1.io.tf_record_iterator(
+              file, tf.io.TFRecordOptions(compression_type='GZIP')))
+          for file in files)
 
   @classmethod
   def setUpClass(cls):
@@ -110,7 +109,7 @@ class ExecutorTest(tft_unit.TransformTestCase):
     artifact2_files = fileio.glob(artifact2_pattern)
     for filepath in artifact2_files:
       directory, filename = os.path.split(filepath)
-      io_utils.copy_file(filepath, os.path.join(directory, 'dup_' + filename))
+      io_utils.copy_file(filepath, os.path.join(directory, f'dup_{filename}'))
 
   def _set_up_input_artifacts(self):
     example1 = standard_artifacts.Examples()
@@ -329,10 +328,10 @@ class ExecutorTest(tft_unit.TransformTestCase):
     if verify_sharded_statistics:
       pre_transform_paths = fileio.glob(
           os.path.join(self._pre_transform_stats.uri,
-                       executor.SHARDED_STATS_PREFIX + '*'))
+                       f'{executor.SHARDED_STATS_PREFIX}*'))
       post_transform_paths = fileio.glob(
           os.path.join(self._post_transform_stats.uri,
-                       executor.SHARDED_STATS_PREFIX + '*'))
+                       f'{executor.SHARDED_STATS_PREFIX}*'))
 
       self.assertNotEmpty(pre_transform_paths)
       self.assertNotEmpty(post_transform_paths)

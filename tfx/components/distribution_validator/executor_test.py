@@ -118,9 +118,11 @@ class ExecutorTest(parameterized.TestCase, test_case_utils.TfxTest):
                                          exec_properties)
 
       for split_pair_name in expected_split_pair_names:
-        output_path = os.path.join(validation_output.uri,
-                                   'SplitPair-' + split_pair_name,
-                                   'SchemaDiff.pb')
+        output_path = os.path.join(
+            validation_output.uri,
+            f'SplitPair-{split_pair_name}',
+            'SchemaDiff.pb',
+        )
         self.assertTrue(fileio.exists(output_path))
 
       # Confirm that no unexpected result files exist.

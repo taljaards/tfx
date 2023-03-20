@@ -48,7 +48,7 @@ def _prepare_sample_execution_info(bucket, artifact_path, output_path,
   sample_artifact.uri = pipeline_root + artifact_path
 
   execution_output_uri = pipeline_root + output_path
-  stateful_working_dir = pipeline_root + '/workding/dir'
+  stateful_working_dir = f'{pipeline_root}/workding/dir'
   exec_properties = {
       'schema_file': pipeline_root + data_path,
   }
@@ -60,22 +60,20 @@ def _prepare_sample_execution_info(bucket, artifact_path, output_path,
       }
       """, pipeline_pb2.PipelineNode())
 
-  original = data_types.ExecutionInfo(
+  return data_types.ExecutionInfo(
       input_dict={},
       output_dict={'schema': [sample_artifact]},
       exec_properties=exec_properties,
       execution_output_uri=execution_output_uri,
       stateful_working_dir=stateful_working_dir,
       pipeline_info=pipeline_info,
-      pipeline_node=pipeline_node)
-
-  return original
+      pipeline_node=pipeline_node,
+  )
 
 
 def _prepare_sample_executable_spec():
   """Prepare sample ImportSchemaGen executable spec."""
-  component = tfx.components.ImportSchemaGen.EXECUTOR_SPEC.encode()
-  return component
+  return tfx.components.ImportSchemaGen.EXECUTOR_SPEC.encode()
 
 
 def main(unused_argv):

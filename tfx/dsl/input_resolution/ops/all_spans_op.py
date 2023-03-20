@@ -38,13 +38,9 @@ class AllSpans(
     # Get artifacts with "span" and "version" in PROPERTIES.
     valid_artifacts = ops_utils.get_valid_artifacts(
         input_list, ops_utils.SPAN_AND_VERSION_PROPERTIES)
-    if not valid_artifacts:
-      return []
-
-    # Return the sorted artifacts.
-    return ops_utils.filter_artifacts_by_span(
+    return (ops_utils.filter_artifacts_by_span(
         artifacts=valid_artifacts,
         span_descending=False,
         n=0,  # n = 0 so that all the spans are considered.
         keep_all_versions=self.keep_all_versions,
-    )
+    ) if valid_artifacts else [])

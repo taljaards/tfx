@@ -63,11 +63,10 @@ def get_graph_name_to_graph_def(
   Returns:
     A mapping from graph names to `GraphDef` protos.
   """
-  graph_name_to_graph_def = {
+  return {
       graph_name: _get_graph_def(filepath)
       for graph_name, filepath in graph_name_to_filepath.items()
   }
-  return graph_name_to_graph_def
 
 
 def _get_graph_def(filepath: str) -> tf.compat.v1.GraphDef:
@@ -158,14 +157,10 @@ def _get_remote_op_to_immediate_dep(
     A mapping from a remote op name to a set of remote op immediate
     dependencies' names.
   """
-  remote_op_to_immediate_dep = {}
-
-  for node in node_name_to_node_def.values():
-    if _is_remote_op(node):
-      remote_op_to_immediate_dep[node.name] = _get_remote_op_immediate_dep(
-          node.name, node_name_to_node_def)
-
-  return remote_op_to_immediate_dep
+  return {
+      node.name: _get_remote_op_immediate_dep(node.name, node_name_to_node_def)
+      for node in node_name_to_node_def.values() if _is_remote_op(node)
+  }
 
 
 def _get_remote_op_immediate_dep(
@@ -181,7 +176,7 @@ def _get_remote_op_immediate_dep(
     A list of remote op immediate dependencies' names.
   """
   queue = collections.deque([remote_op_name])
-  visited = set([remote_op_name])
+  visited = {remote_op_name}
   remote_op_immediate_dep = []
 
   while queue:
@@ -346,10 +341,10 @@ def _get_execution_spec_for_subgraph_layer(
 
   while queue:
     current_node_name = queue.popleft()
-    current_node = node_name_to_node_def[current_node_name]
-
     if current_node_name not in visited:
       visited.add(current_node_name)
+
+      current_node = node_name_to_node_def[current_node_name]
 
       if (_is_remote_op(current_node) or _is_placeholder_op(current_node) or
           current_node_name in previously_visited):
@@ -386,7 +381,7 @@ def _create_placeholder_node_from_existing_node(
   Returns:
     A `NodeDef` proto that stores a placeholder node.
   """
-  operation = graph.get_operation_by_name('import/%s' % (node.name))
+  operation = graph.get_operation_by_name(f'import/{node.name}')
   output_tensor = operation.outputs[0]
 
   with tf.compat.v1.Session(graph=tf.Graph()) as sess:
@@ -396,17 +391,11 @@ def _create_placeholder_node_from_existing_node(
 
 
 def _get_input_names(subgraph: tf.compat.v1.GraphDef) -> Set[str]:
-  input_names = {
-      node.name for node in subgraph.node if _is_placeholder_op(node)
-  }
-  return input_names
+  return {node.name for node in subgraph.node if _is_placeholder_op(node)}
 
 
 def _get_non_input_names(subgraph: tf.compat.v1.GraphDef) -> Set[str]:
-  non_input_names = {
-      node.name for node in subgraph.node if not _is_placeholder_op(node)
-  }
-  return non_input_names
+  return {node.name for node in subgraph.node if not _is_placeholder_op(node)}
 
 
 def _get_execution_specs_for_remote_op_layer(
@@ -433,8 +422,9 @@ def _get_execution_specs_for_remote_op_layer(
     spec = execution_spec.ExecutionSpec(
         subgraph=None,
         input_names=set(node_name_to_node_def[remote_op_name].input),
-        output_names=set([remote_op_name]),
-        is_remote_op=True)
+        output_names={remote_op_name},
+        is_remote_op=True,
+    )
     list_of_specs.append(spec)
 
   return list_of_specs

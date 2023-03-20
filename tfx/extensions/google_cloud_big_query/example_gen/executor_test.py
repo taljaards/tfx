@@ -90,8 +90,7 @@ class ExecutorTest(tf.test.TestCase):
               exec_properties={'_beam_pipeline_args': []},
               split_pattern='SELECT i, i2, b, f, f2, s, s2 FROM `fake`'))
 
-      feature = {}
-      feature['i'] = tf.train.Feature(int64_list=tf.train.Int64List(value=[1]))
+      feature = {'i': tf.train.Feature(int64_list=tf.train.Int64List(value=[1]))}
       feature['i2'] = tf.train.Feature(
           int64_list=tf.train.Int64List(value=[2, 3]))
       feature['b'] = tf.train.Feature(int64_list=tf.train.Int64List(value=[1]))

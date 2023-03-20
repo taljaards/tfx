@@ -59,7 +59,7 @@ class BaseStubExecutor(base_executor.BaseExecutor):
     self._component_id = component_id
     self._test_data_dir = test_data_dir
     if not fileio.exists(self._test_data_dir):
-      raise ValueError("Must record pipeline in {}".format(self._test_data_dir))
+      raise ValueError(f"Must record pipeline in {self._test_data_dir}")
 
   def Do(self, input_dict: Dict[str, List[types.Artifact]],
          output_dict: Dict[str, List[types.Artifact]],
@@ -83,6 +83,6 @@ class BaseStubExecutor(base_executor.BaseExecutor):
         src = os.path.join(self._test_data_dir, self._component_id, output_key,
                            str(idx))
         if not fileio.exists(src):
-          raise FileNotFoundError("{} does not exist".format(src))
+          raise FileNotFoundError(f"{src} does not exist")
         io_utils.copy_dir(src, dest)
         logging.info("Finished copying from %s to %s", src, dest)

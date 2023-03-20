@@ -63,28 +63,27 @@ def _build_estimator(config, hidden_units=None, warm_start_from=None):
       for key in features.transformed_names(features.DENSE_FLOAT_FEATURE_KEYS)
   ]
 
-  categorical_columns = []
-  for key in features.transformed_names(features.VOCAB_FEATURE_KEYS):
-    categorical_columns.append(
-        tf.feature_column.categorical_column_with_identity(
-            key,
-            num_buckets=features.VOCAB_SIZE + features.OOV_SIZE,
-            default_value=0))
-
-  for key, num_buckets in zip(
-      features.transformed_names(features.BUCKET_FEATURE_KEYS),
-      features.BUCKET_FEATURE_BUCKET_COUNT):
-    categorical_columns.append(
-        tf.feature_column.categorical_column_with_identity(
-            key, num_buckets=num_buckets, default_value=0))
-
-  for key, num_buckets in zip(
-      features.transformed_names(features.CATEGORICAL_FEATURE_KEYS),
-      features.CATEGORICAL_FEATURE_MAX_VALUES):
-    categorical_columns.append(
-        tf.feature_column.categorical_column_with_identity(
-            key, num_buckets=num_buckets, default_value=0))
-
+  categorical_columns = [
+      tf.feature_column.categorical_column_with_identity(
+          key,
+          num_buckets=features.VOCAB_SIZE + features.OOV_SIZE,
+          default_value=0,
+      ) for key in features.transformed_names(features.VOCAB_FEATURE_KEYS)
+  ]
+  categorical_columns.extend(
+      tf.feature_column.categorical_column_with_identity(
+          key, num_buckets=num_buckets, default_value=0)
+      for key, num_buckets in zip(
+          features.transformed_names(features.BUCKET_FEATURE_KEYS),
+          features.BUCKET_FEATURE_BUCKET_COUNT,
+      ))
+  categorical_columns.extend(
+      tf.feature_column.categorical_column_with_identity(
+          key, num_buckets=num_buckets, default_value=0)
+      for key, num_buckets in zip(
+          features.transformed_names(features.CATEGORICAL_FEATURE_KEYS),
+          features.CATEGORICAL_FEATURE_MAX_VALUES,
+      ))
   return tf_estimator.DNNLinearCombinedClassifier(
       config=config,
       linear_feature_columns=categorical_columns,

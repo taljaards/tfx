@@ -105,12 +105,11 @@ class LatestBlessedModelStrategy(resolver.ResolverStrategy):
       elif issubclass(type(artifact), standard_artifacts.ModelBlessing):
         model_blessing_channel_key = k
       else:
-        raise RuntimeError('Only expecting Model or ModelBlessing, got %s' %
-                           artifact.TYPE_NAME)
+        raise RuntimeError(
+            f'Only expecting Model or ModelBlessing, got {artifact.TYPE_NAME}')
     assert model_channel_key is not None, 'Expecting Model as input'
     assert model_blessing_channel_key is not None, ('Expecting ModelBlessing as'
                                                     ' input')
 
-    result = self._resolve(input_dict, model_channel_key,
-                           model_blessing_channel_key)
-    return result
+    return self._resolve(input_dict, model_channel_key,
+                         model_blessing_channel_key)

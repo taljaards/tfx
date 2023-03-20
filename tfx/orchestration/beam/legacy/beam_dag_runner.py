@@ -119,7 +119,7 @@ class BeamDagRunner(tfx_runner.TfxRunner):
     tfx_pipeline.pipeline_info.run_id = datetime.datetime.now().isoformat()
 
     with telemetry_utils.scoped_labels(
-        {telemetry_utils.LABEL_TFX_RUNNER: 'beam'}):
+          {telemetry_utils.LABEL_TFX_RUNNER: 'beam'}):
       with beam.Pipeline(argv=self._beam_orchestrator_args) as p:
         # Uses for triggering the component DoFns.
         root = p | 'CreateRoot' >> beam.Create([None])
@@ -151,10 +151,13 @@ class BeamDagRunner(tfx_runner.TfxRunner):
 
           # Each signal is an empty PCollection. AsIter ensures component will
           # be triggered after upstream components are finished.
-          signal_map[component] = (
-              root
-              | 'Run[%s]' % component_id >> beam.ParDo(
-                  _ComponentAsDoFn(component, component_launcher_class,
-                                   component_config, tfx_pipeline),
-                  *[beam.pvalue.AsIter(s) for s in signals_to_wait]))
+          signal_map[component] = root | (f'Run[{component_id}]' >> beam.ParDo(
+              _ComponentAsDoFn(
+                  component,
+                  component_launcher_class,
+                  component_config,
+                  tfx_pipeline,
+              ),
+              *[beam.pvalue.AsIter(s) for s in signals_to_wait],
+          ))
           absl.logging.info('Component %s is scheduled.', component_id)

@@ -61,10 +61,9 @@ def ValidateOnlyOneSpecified(inputs: Mapping[str, Any],
   Raises:
     ValueError: if none of the keys have non empty value in the input.
   """
-  counter = 0
-  for key in keys:
-    counter += int(bool(value_utils.GetSoleValue(inputs, key, strict=False)))
-
+  counter = sum(
+      int(bool(value_utils.GetSoleValue(inputs, key, strict=False)))
+      for key in keys)
   keys_str = ', '.join(keys)
   if counter > 1:
     raise ValueError(
@@ -121,8 +120,8 @@ def ResolveSplitsConfig(
         artifact_utils.decode_split_names(artifact.split_names))
     if split_names != artifact_split_names:
       raise ValueError(
-          'Not all input artifacts have the same split names: (%s, %s)' %
-          (split_names, artifact_split_names))
+          f'Not all input artifacts have the same split names: ({split_names}, {artifact_split_names})'
+      )
 
   result.transform.extend(split_names)
   logging.info("Analyze the 'train' split and transform all splits when "
@@ -153,10 +152,9 @@ def GetSplitPaths(
   for split in splits:
     transformed_example_uris = artifact_utils.get_split_uris(
         transformed_examples, split)
-    for output_uri in transformed_example_uris:
-      result.append(
-          os.path.join(output_uri, _DEFAULT_TRANSFORMED_EXAMPLES_PREFIX))
-
+    result.extend(
+        os.path.join(output_uri, _DEFAULT_TRANSFORMED_EXAMPLES_PREFIX)
+        for output_uri in transformed_example_uris)
   return result
 
 

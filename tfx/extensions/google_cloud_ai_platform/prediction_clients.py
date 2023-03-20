@@ -55,7 +55,7 @@ def _get_tf_runtime_version(tf_version: str) -> str:
   Returns: same major.minor version of installed tensorflow, except when
     overriden by _TF_COMPATIBILITY_OVERRIDE.
   """
-  tf_version = '.'.join(tf_version.split('.')[0:2])
+  tf_version = '.'.join(tf_version.split('.')[:2])
   return _TF_COMPATIBILITY_OVERRIDE.get(tf_version) or tf_version
 
 
@@ -218,7 +218,7 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
         model_name, project_id, version_body)
 
     # Push to AIP, and record the operation name so we can poll for its state.
-    model_name = 'projects/{}/models/{}'.format(project_id, model_name)
+    model_name = f'projects/{project_id}/models/{model_name}'
     try:
       operation = self._client.projects().models().versions().create(
           body=version_body, parent=model_name).execute()
@@ -230,16 +230,14 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
       if e.resp.status == 409:
         logging.warn('Model version %s already exists', model_version_name)
       else:
-        raise RuntimeError('Creating model version to AI Platform failed: {}'
-                           .format(e))
+        raise RuntimeError(f'Creating model version to AI Platform failed: {e}')
 
     if set_default:
       # Set the new version as default.
       # By API specification, if Long-Running-Operation is done and there is
       # no error, 'response' is guaranteed to exist.
       self._client.projects().models().versions().setDefault(
-          name='{}/versions/{}'.format(model_name,
-                                       model_version_name)).execute()
+          name=f'{model_name}/versions/{model_version_name}').execute()
 
     logging.info(
         'Successfully deployed model %s with version %s, serving from %s',
@@ -268,18 +266,16 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
     project_id = ai_platform_serving_args['project_id']
     regions = ai_platform_serving_args.get('regions', [])
     body = {'name': model_name, 'regions': regions, 'labels': labels}
-    parent = 'projects/{}'.format(project_id)
+    parent = f'projects/{project_id}'
     result = True
     try:
       self._client.projects().models().create(
           body=body, parent=parent).execute()
     except errors.HttpError as e:
-      # If the error is to create an already existing model, it's ok to ignore.
-      if e.resp.status == 409:
-        logging.warn('Model %s already exists', model_name)
-        result = False
-      else:
-        raise RuntimeError('Creating model to AI Platform failed: {}'.format(e))
+      if e.resp.status != 409:
+        raise RuntimeError(f'Creating model to AI Platform failed: {e}')
+      logging.warn('Model %s already exists', model_name)
+      result = False
     return result
 
   def _wait_for_operation(self, operation: Dict[str, Any],
@@ -304,8 +300,7 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
     result = status_resc.execute()
     if result.get('error'):
       # The operation completed with an error.
-      raise RuntimeError('Failed to execute {}: {}'.format(
-          method_name, result['error']))
+      raise RuntimeError(f"Failed to execute {method_name}: {result['error']}")
     return result
 
   def delete_model_from_aip_if_exists(
@@ -335,7 +330,7 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
     if delete_model_endpoint:
       logging.info('Deleting model with from AI Platform: %s',
                    ai_platform_serving_args)
-      name = 'projects/{}/models/{}'.format(project_id, model_name)
+      name = f'projects/{project_id}/models/{model_name}'
       try:
         operation = self._client.projects().models().delete(name=name).execute()
         self._wait_for_operation(operation, 'projects.models.delete')
@@ -352,8 +347,7 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
                          ' delete_model_endpoint is False')
       logging.info('Deleting model version %s from AI Platform: %s',
                    model_version_name, ai_platform_serving_args)
-      version_name = 'projects/{}/models/{}/versions/{}'.format(
-          project_id, model_name, model_version_name)
+      version_name = f'projects/{project_id}/models/{model_name}/versions/{model_version_name}'
       try:
         operation = self._client.projects().models().versions().delete(
             name=version_name).execute()
@@ -362,16 +356,19 @@ class CAIPTfxPredictionClient(AbstractPredictionClient):
       except errors.HttpError as e:
         # If the error is to delete an non-existent model version,
         # it's ok to ignore.
-        if e.resp.status == 404:
-          logging.warn('Model version %s does not exist', version_name)
         if e.resp.status == 400:
           logging.warn('Model version %s won\'t be deleted because it is the '
                        'default version and not the only version in the model',
                        version_name)
+        elif e.resp.status == 404:
+          logging.warn('Model version %s does not exist', version_name)
+          raise RuntimeError(
+              f'Deleting model version {version_name} from AI Platform failed.'
+          ) from e
         else:
           raise RuntimeError(
-              'Deleting model version {} from AI Platform failed.'.format(
-                  version_name)) from e
+              f'Deleting model version {version_name} from AI Platform failed.'
+          ) from e
 
 
 class VertexPredictionClient(AbstractPredictionClient):
@@ -564,11 +561,10 @@ class VertexPredictionClient(AbstractPredictionClient):
       logging.info('Deleting model %s from AI Platform: %s',
                    model_version_name, ai_platform_serving_args)
       deployed_models = endpoint.list_models()
-      models = [
+      if models := [
           model for model in deployed_models
           if model.display_name == model_version_name
-      ]
-      if models:
+      ]:
         model_to_undeploy = models[0]
       else:
         logging.warn('Model %s does not exist at endpoint %s',
@@ -581,16 +577,19 @@ class VertexPredictionClient(AbstractPredictionClient):
       except errors.HttpError as e:
         # If the error is to delete an non-existent model version,
         # it's ok to ignore.
-        if e.resp.status == 404:
-          logging.warn('Model %s does not exist', model_version_name)
         if e.resp.status == 400:
           logging.warn('Model %s won\'t be deleted because it is the '
                        'default version and not the only version in the model',
                        model_version_name)
+        elif e.resp.status == 404:
+          logging.warn('Model %s does not exist', model_version_name)
+          raise RuntimeError(
+              f'Deleting model {model_version_name} from AI Platform failed.'
+          ) from e
         else:
           raise RuntimeError(
-              'Deleting model {} from AI Platform failed.'.format(
-                  model_version_name)) from e
+              f'Deleting model {model_version_name} from AI Platform failed.'
+          ) from e
 
   def _get_endpoint(
       self, ai_platform_serving_args: Dict[str, Any]) -> aiplatform.Endpoint:
@@ -610,13 +609,11 @@ class VertexPredictionClient(AbstractPredictionClient):
     endpoint_name = ai_platform_serving_args['endpoint_name']
     endpoint = None
 
-    endpoints = aiplatform.Endpoint.list(filter='display_name="{}"'.format(
-        endpoint_name))
-
-    if endpoints:
+    if endpoints := aiplatform.Endpoint.list(
+        filter=f'display_name="{endpoint_name}"'):
       endpoint = endpoints[0]
     else:
-      raise RuntimeError('Error getting endpoint {}'.format(endpoint_name))
+      raise RuntimeError(f'Error getting endpoint {endpoint_name}')
 
     return endpoint
 

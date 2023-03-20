@@ -13,6 +13,7 @@
 # limitations under the License.
 """Define KubeflowV2DagRunner to run the pipeline."""
 
+
 import os
 from absl import logging
 
@@ -48,7 +49,7 @@ _SERVING_MODEL_DIR = os.path.join(_PIPELINE_ROOT, 'serving_model')
 # _DATA_PATH = 'data'. Note that Dataflow does not support use container as a
 # dependency currently, so this means CsvExampleGen cannot be used with Dataflow
 # (step 8 in the template notebook).
-_DATA_PATH = 'gs://{}/tfx-template/data/taxi/'.format(configs.GCS_BUCKET_NAME)
+_DATA_PATH = f'gs://{configs.GCS_BUCKET_NAME}/tfx-template/data/taxi/'
 
 
 def run():

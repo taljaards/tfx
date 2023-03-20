@@ -132,23 +132,21 @@ def _run_original_model(root_graph, root_graph_input_data,
   outputs = []
   with tf.compat.v1.Session(graph=tf.Graph()) as sess:
     tf.import_graph_def(graph_def)
-    for graph_name_to_feed_dict in root_graph_input_data:
-      outputs.append(
-          sess.run(output_tensor_names, graph_name_to_feed_dict[root_graph]))
-
+    outputs.extend(
+        sess.run(output_tensor_names, graph_name_to_feed_dict[root_graph])
+        for graph_name_to_feed_dict in root_graph_input_data)
   return outputs
 
 
 def _import_tensor_name(node_name):
-  return 'import/%s:0' % node_name
+  return f'import/{node_name}:0'
 
 
 def _extract_outputs(element, root_graph, graph_name_to_output_names):
-  outputs = [
+  return [
       element[root_graph][_import_tensor_name(name)]
       for name in graph_name_to_output_names[root_graph]
   ]
-  return outputs
 
 
 def almost_equal_to(expected):

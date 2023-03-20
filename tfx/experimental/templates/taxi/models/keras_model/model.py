@@ -138,13 +138,13 @@ def _build_keras_model(hidden_units, learning_rate):
       for categorical_column in categorical_columns
   ]
 
-  model = _wide_and_deep_classifier(
+  return _wide_and_deep_classifier(
       # TODO(b/140320729) Replace with premade wide_and_deep keras model
       wide_columns=indicator_column,
       deep_columns=real_valued_columns,
       dnn_hidden_units=hidden_units,
-      learning_rate=learning_rate)
-  return model
+      learning_rate=learning_rate,
+  )
 
 
 def _wide_and_deep_classifier(wide_columns, deep_columns, dnn_hidden_units,
@@ -161,26 +161,29 @@ def _wide_and_deep_classifier(wide_columns, deep_columns, dnn_hidden_units,
   Returns:
     A Wide and Deep Keras model
   """
-  # Keras needs the feature definitions at compile time.
-  # TODO(b/139081439): Automate generation of input layers from FeatureColumn.
-  input_layers = {
+  input_layers = ({
       colname: tf.keras.layers.Input(name=colname, shape=(), dtype=tf.float32)
       for colname in features.transformed_names(
           features.DENSE_FLOAT_FEATURE_KEYS)
   }
-  input_layers.update({
-      colname: tf.keras.layers.Input(name=colname, shape=(), dtype='int32')
-      for colname in features.transformed_names(features.VOCAB_FEATURE_KEYS)
-  })
-  input_layers.update({
-      colname: tf.keras.layers.Input(name=colname, shape=(), dtype='int32')
-      for colname in features.transformed_names(features.BUCKET_FEATURE_KEYS)
-  })
-  input_layers.update({
-      colname: tf.keras.layers.Input(name=colname, shape=(), dtype='int32') for
-      colname in features.transformed_names(features.CATEGORICAL_FEATURE_KEYS)
-  })
-
+                  | {
+                      colname: tf.keras.layers.Input(
+                          name=colname, shape=(), dtype='int32')
+                      for colname in features.transformed_names(
+                          features.VOCAB_FEATURE_KEYS)
+                  }
+                  | {
+                      colname: tf.keras.layers.Input(
+                          name=colname, shape=(), dtype='int32')
+                      for colname in features.transformed_names(
+                          features.BUCKET_FEATURE_KEYS)
+                  }
+                  | {
+                      colname: tf.keras.layers.Input(
+                          name=colname, shape=(), dtype='int32')
+                      for colname in features.transformed_names(
+                          features.CATEGORICAL_FEATURE_KEYS)
+                  })
   # TODO(b/161952382): Replace with Keras premade models and
   # Keras preprocessing layers.
   deep = tf.keras.layers.DenseFeatures(deep_columns)(input_layers)

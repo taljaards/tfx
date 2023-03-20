@@ -115,8 +115,9 @@ class Executor(bulk_inferrer_executor.Executor):
       logging.info('Model blessing is not provided, exported model will be '
                    'used.')
     if _CUSTOM_CONFIG_KEY not in exec_properties:
-      raise ValueError('Input exec properties are not valid, {} '
-                       'need to be specified.'.format(_CUSTOM_CONFIG_KEY))
+      raise ValueError(
+          f'Input exec properties are not valid, {_CUSTOM_CONFIG_KEY} need to be specified.'
+      )
 
     custom_config = json_utils.loads(
         exec_properties.get(_CUSTOM_CONFIG_KEY, 'null'))
@@ -139,7 +140,7 @@ class Executor(bulk_inferrer_executor.Executor):
     logging.info('Use exported model from %s.', model_path)
     # Use model artifact uri to generate model version to guarantee the
     # 1:1 mapping from model version to model.
-    model_version = 'version_' + hashlib.sha256(model.uri.encode()).hexdigest()
+    model_version = f'version_{hashlib.sha256(model.uri.encode()).hexdigest()}'
     inference_spec = self._get_inference_spec(model_path, model_version,
                                               ai_platform_serving_args)
     data_spec = bulk_inferrer_pb2.DataSpec()

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Penguin example using TFX."""
 
+
 import datetime
 import multiprocessing
 import os
@@ -81,11 +82,11 @@ _beam_pipeline_args_by_runner = {
         # during execution time.
         '--direct_num_workers=0',
     ],
-    'SparkRunner': [
+    'SparkRunner': ([
         '--runner=SparkRunner',
         '--spark_submit_uber_jar',
-        '--spark_rest_url=http://%s:6066' % socket.gethostname(),
-    ] + _beam_portable_pipeline_args,
+        f'--spark_rest_url=http://{socket.gethostname()}:6066',
+    ] + _beam_portable_pipeline_args),
     'FlinkRunner': [
         '--runner=FlinkRunner',
         # LINT.IfChange
@@ -94,7 +95,7 @@ _beam_pipeline_args_by_runner = {
         '--flink_submit_uber_jar',
         '--flink_master=http://localhost:8081',
         '--parallelism=%d' % _parallelism,
-    ] + _beam_portable_pipeline_args
+    ] + _beam_portable_pipeline_args,
 }
 
 # Configs for ExampleGen and SpansResolver, e.g.,

@@ -79,8 +79,8 @@ class ExecutorOnParquetTest(executor_test.ExecutorTest):
       dest_dir2 = os.path.join(cls._ARTIFACT2_URI, parent_dir_name)
       fileio.makedirs(dest_dir1)
       fileio.makedirs(dest_dir2)
-      dest_path1 = os.path.join(dest_dir1, filename[:-3] + '.parquet')
-      dest_path2 = os.path.join(dest_dir2, filename[:-3] + '.parquet')
+      dest_path1 = os.path.join(dest_dir1, f'{filename[:-3]}.parquet')
+      dest_path2 = os.path.join(dest_dir2, f'{filename[:-3]}.parquet')
       _copy_examples_as_parquet(filepath, [dest_path1, dest_path2], schema)
 
     # Duplicate the number of train and eval records such that
@@ -89,7 +89,7 @@ class ExecutorOnParquetTest(executor_test.ExecutorTest):
     artifact2_files = fileio.glob(artifact2_pattern)
     for filepath in artifact2_files:
       directory, filename = os.path.split(filepath)
-      io_utils.copy_file(filepath, os.path.join(directory, 'dup_' + filename))
+      io_utils.copy_file(filepath, os.path.join(directory, f'dup_{filename}'))
 
 
 if __name__ == '__main__':

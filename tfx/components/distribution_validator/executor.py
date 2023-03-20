@@ -129,8 +129,10 @@ def _add_anomalies_for_missing_comparisons(
     An Anomalies proto with anomalies added for features for which comparisons
     could not be done.
   """
-  compared_features = set(
-      ['.'.join(info.path.step) for info in raw_anomalies.drift_skew_info])
+  compared_features = {
+      '.'.join(info.path.step)
+      for info in raw_anomalies.drift_skew_info
+  }
   anomalies = anomalies_pb2.Anomalies()
   anomalies.CopyFrom(raw_anomalies)
   anomalies.anomaly_name_format = (
@@ -178,7 +180,7 @@ class Executor(base_executor.BaseExecutor):
     include_splits_list = json_utils.loads(
         exec_properties.get(standard_component_specs.INCLUDE_SPLIT_PAIRS_KEY,
                             'null')) or []
-    include_splits = set((test, base) for test, base in include_splits_list)
+    include_splits = set(include_splits_list)
 
     test_statistics = artifact_utils.get_single_instance(
         input_dict[standard_component_specs.STATISTICS_KEY])
@@ -196,33 +198,28 @@ class Executor(base_executor.BaseExecutor):
     split_pairs = []
     for test_split in artifact_utils.decode_split_names(
         test_statistics.split_names):
-      for baseline_split in artifact_utils.decode_split_names(
-          baseline_statistics.split_names):
-        if (test_split, baseline_split) in include_splits:
-          split_pairs.append((test_split, baseline_split))
-        elif not include_splits and test_split == baseline_split:
-          split_pairs.append((test_split, baseline_split))
+      split_pairs.extend((test_split, baseline_split)
+                         for baseline_split in artifact_utils.decode_split_names(
+                             baseline_statistics.split_names)
+                         if (test_split, baseline_split) in include_splits
+                         or not include_splits and test_split == baseline_split)
     if not split_pairs:
       raise ValueError(
-          'No split pairs from test and baseline statistics: %s, %s' %
-          (test_statistics, baseline_statistics))
+          f'No split pairs from test and baseline statistics: {test_statistics}, {baseline_statistics}'
+      )
     if include_splits:
-      missing_split_pairs = include_splits - set(split_pairs)
-      if missing_split_pairs:
+      if missing_split_pairs := include_splits - set(split_pairs):
         raise ValueError(
-            'Missing split pairs identified in include_split_pairs: %s' %
-            ', '.join([
-                '%s_%s' % (test, baseline)
-                for test, baseline in missing_split_pairs
-            ]))
+            f"Missing split pairs identified in include_split_pairs: {', '.join([f'{test}_{baseline}' for test, baseline in missing_split_pairs])}"
+        )
 
     anomalies_artifact = artifact_utils.get_single_instance(
         output_dict[standard_component_specs.ANOMALIES_KEY])
     anomalies_artifact.split_names = artifact_utils.encode_split_names(
-        ['%s_%s' % (test, baseline) for test, baseline in split_pairs])
+        [f'{test}_{baseline}' for test, baseline in split_pairs])
 
     for test_split, baseline_split in split_pairs:
-      split_pair = '%s_%s' % (test_split, baseline_split)
+      split_pair = f'{test_split}_{baseline_split}'
       logging.info('Processing split pair %s', split_pair)
       test_stats_split = stats_artifact_utils.load_statistics(
           test_statistics, test_split).proto()
@@ -240,7 +237,7 @@ class Executor(base_executor.BaseExecutor):
       writer_utils.write_anomalies(
           os.path.join(
               anomalies_artifact.uri,
-              'SplitPair-%s' % split_pair,
+              f'SplitPair-{split_pair}',
               DEFAULT_FILE_NAME,
           ),
           anomalies,

@@ -121,7 +121,7 @@ class PipelineInfo:
   @property
   def pipeline_run_context_name(self) -> str:
     """Context name for the current pipeline run."""
-    return '{}.{}'.format(self.pipeline_name, self.run_id)
+    return f'{self.pipeline_name}.{self.run_id}'
 
   @property
   def pipeline_context_name(self) -> str:
@@ -156,11 +156,9 @@ class ComponentInfo:
   def component_run_context_name(self) -> str:
     """"Context name for current component run."""
     if self.pipeline_info.run_id:
-      return '{}.{}'.format(self.pipeline_info.pipeline_run_context_name,
-                            self.component_id)
+      return f'{self.pipeline_info.pipeline_run_context_name}.{self.component_id}'
     else:
-      return '{}.{}'.format(self.pipeline_info.pipeline_context_name,
-                            self.component_id)
+      return f'{self.pipeline_info.pipeline_context_name}.{self.component_id}'
 
 
 class RuntimeParameter(json_utils.Jsonable):

@@ -39,9 +39,7 @@ class TFMABenchmarkBase(benchmark_base.BenchmarkBase):
     # dataset.
     limit = 100000
     parent_max = super()._max_num_examples()
-    if parent_max is None:
-      return limit
-    return min(parent_max, limit)
+    return limit if parent_max is None else min(parent_max, limit)
 
   def report_benchmark(self, **kwargs):
     if "extras" not in kwargs:
@@ -99,12 +97,10 @@ class TFMABenchmarkBase(benchmark_base.BenchmarkBase):
     Runs _TFMAPredictionDoFn "manually" outside a Beam pipeline. Records the
     wall time taken.
     """
-    # Run InputsToExtracts manually.
-    records = []
-    for x in self._dataset.read_raw_dataset(
-        deserialize=False, limit=self._max_num_examples()):
-      records.append({tfma.constants.INPUT_KEY: x})
-
+    records = [{
+        tfma.constants.INPUT_KEY: x
+    } for x in self._dataset.read_raw_dataset(
+        deserialize=False, limit=self._max_num_examples())]
     fn = tfma.extractors.legacy_predict_extractor._TFMAPredictionDoFn(  # pylint: disable=protected-access
         eval_shared_models={"": tfma.default_eval_shared_model(
             eval_saved_model_path=self._dataset.tfma_saved_model_path())},
@@ -136,12 +132,10 @@ class TFMABenchmarkBase(benchmark_base.BenchmarkBase):
     wall time taken.
     """
 
-    # Run InputsToExtracts manually.
-    records = []
-    for x in self._dataset.read_raw_dataset(
-        deserialize=False, limit=self._max_num_examples()):
-      records.append({tfma.constants.INPUT_KEY: x})
-
+    records = [{
+        tfma.constants.INPUT_KEY: x
+    } for x in self._dataset.read_raw_dataset(
+        deserialize=False, limit=self._max_num_examples())]
     fn = tfma.extractors.legacy_predict_extractor._TFMAPredictionDoFn(  # pylint: disable=protected-access
         eval_shared_models={"": tfma.default_eval_shared_model(
             eval_saved_model_path=self._dataset.tfma_saved_model_path())},
@@ -256,9 +250,10 @@ class TFMABenchmarkBase(benchmark_base.BenchmarkBase):
         deserialize=False, limit=self._max_num_examples())
 
     start = time.time()
-    accumulators = []
-    for batch in benchmark_utils.batched_iterator(records, batch_size):
-      accumulators.append(eval_saved_model.metrics_reset_update_get_list(batch))
+    accumulators = [
+        eval_saved_model.metrics_reset_update_get_list(batch)
+        for batch in benchmark_utils.batched_iterator(records, batch_size)
+    ]
     end = time.time()
     delta = end - start
 
@@ -276,8 +271,8 @@ class TFMABenchmarkBase(benchmark_base.BenchmarkBase):
         metric_variables_sum)
     if "average_loss" not in metrics:
       raise ValueError(
-          "metrics should contain average_loss metric, but it did not. "
-          "metrics were: %s" % metrics)
+          f"metrics should contain average_loss metric, but it did not. metrics were: {metrics}"
+      )
 
     self.report_benchmark(
         iters=1,

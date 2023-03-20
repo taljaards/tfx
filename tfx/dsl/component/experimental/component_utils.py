@@ -38,8 +38,8 @@ def create_tfx_component_class(
 ) -> Callable[..., base_component.BaseComponent]:
   """Creates a TFX component class dynamically."""
   tfx_component_spec_class = type(
-      str(name) + 'Spec',
-      (component_spec.ComponentSpec,),
+      f'{name}Spec',
+      (component_spec.ComponentSpec, ),
       dict(
           PARAMETERS=execution_parameters or {},
           INPUTS=input_channel_parameters or {},
@@ -68,8 +68,8 @@ def create_tfx_component_class(
       base_class.with_id(self, self.__class__.__name__)
 
   tfx_component_class = type(
-      str(name),
-      (base_class,),
+      name,
+      (base_class, ),
       dict(
           SPEC_CLASS=tfx_component_spec_class,
           EXECUTOR_SPEC=tfx_executor_spec,

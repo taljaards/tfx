@@ -300,7 +300,7 @@ class _ExpressionResolver:
     value = self.resolve(op.expression)
     if value is None or not value:
       raise NullDereferenceError(op.expression)
-    index_or_key = op.key if op.key else op.index
+    index_or_key = op.key or op.index
     try:
       return value[index_or_key]
     except (TypeError, IndexError) as e:
@@ -466,11 +466,11 @@ class _ExpressionResolver:
     lhs_value = self.resolve(op.lhs)
     rhs_value = self.resolve(op.rhs)
     if op.op == _Operation.EQUAL.value:
-      return bool(lhs_value == rhs_value)
+      return lhs_value == rhs_value
     elif op.op == _Operation.LESS_THAN.value:
-      return bool(lhs_value < rhs_value)
+      return lhs_value < rhs_value
     elif op.op == _Operation.GREATER_THAN.value:
-      return bool(lhs_value > rhs_value)
+      return lhs_value > rhs_value
 
     raise ValueError(f"Unrecognized comparison operation {op.op}")
 

@@ -40,7 +40,7 @@ _JOB_CREATION_TIMEOUT = 300
 
 def _generate_component_name_suffix() -> str:
   letters = string.ascii_lowercase
-  return '-' + ''.join(random.choice(letters) for i in range(10))
+  return '-' + ''.join(random.choice(letters) for _ in range(10))
 
 
 class JobExceptionError(Exception):
@@ -97,7 +97,9 @@ class KubernetesJobRunner(abc.ABC):
     except k8s_client.rest.ApiException as e:
       # TODO(b/240237394): Error type specification.
       msg = 'Unable to run job. \nReason: %s\nBody: %s' % (
-          e.reason if not None else '', e.body if not None else '')
+          '' if None else e.reason,
+          '' if None else e.body,
+      )
       logging.info(msg)
       return task_scheduler.TaskSchedulerResult(
           status=status_lib.Status(code=status_lib.Code.CANCELLED, message=msg))
@@ -148,12 +150,11 @@ class KubernetesJobRunner(abc.ABC):
     while (datetime.datetime.utcnow() -
            start_time).seconds < _JOB_CREATION_TIMEOUT:
       orchestrator_pods = self._k8s_core_api.list_namespaced_pod(
-          namespace='default',
-          label_selector='job-name={}'.format(self._job_name)).items
+          namespace='default', label_selector=f'job-name={self._job_name}').items
       try:
         orchestrator_pods = self._k8s_core_api.list_namespaced_pod(
             namespace='default',
-            label_selector='job-name={}'.format(self._job_name)).items
+            label_selector=f'job-name={self._job_name}').items
       except k8s_client.rest.ApiException as e:
         if e.status != 404:
           raise e
@@ -197,8 +198,8 @@ class KubernetesJobRunner(abc.ABC):
         exponential_backoff=True)
     pod_phase = kube_utils.PodPhase(pod.status.phase)
     if pod_phase == kube_utils.PodPhase.FAILED:
-      raise JobExceptionError(message='Pod "%s" failed with status "%s".' %
-                              (self._pod_name, pod.status))
+      raise JobExceptionError(
+          message=f'Pod "{self._pod_name}" failed with status "{pod.status}".')
     if pod_phase.is_done:
       logging.info('Job completed! Ending log streaming for pod %s:%s.',
                    self._namespace, self._pod_name)

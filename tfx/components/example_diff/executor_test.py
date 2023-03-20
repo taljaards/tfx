@@ -57,10 +57,8 @@ class ExecutorTest(parameterized.TestCase):
     diff_path = os.path.join(diff_dir, executor.STATS_FILE_NAME)
     # TODO(b/227361696): Validate contents and not just presence.
     # Validate skew results
-    self.assertNotEmpty(fileio.glob(diff_path + '*-of-*'))
-    count = 0
-    for _ in feature_skew_detector.skew_results_iterator(diff_path):
-      count += 1
+    self.assertNotEmpty(fileio.glob(f'{diff_path}*-of-*'))
+    count = sum(1 for _ in feature_skew_detector.skew_results_iterator(diff_path))
     if not expect_matches:
       self.assertEqual(count, 0)
     else:
@@ -68,10 +66,8 @@ class ExecutorTest(parameterized.TestCase):
 
   def _validate_skew_pairs(self, diff_dir, expect_matches):
     diff_path = os.path.join(diff_dir, executor._SAMPLE_FILE_NAME)
-    self.assertNotEmpty(fileio.glob(diff_path + '*-of-*'))
-    count = 0
-    for _ in feature_skew_detector.skew_pair_iterator(diff_path):
-      count += 1
+    self.assertNotEmpty(fileio.glob(f'{diff_path}*-of-*'))
+    count = sum(1 for _ in feature_skew_detector.skew_pair_iterator(diff_path))
     if not expect_matches:
       self.assertEqual(count, 0)
     else:
@@ -195,8 +191,7 @@ class ExecutorTest(parameterized.TestCase):
     # See tensorflow_data_validation/skew/feature_skew_detector_test.py for
     # detailed examples of feature skew pipeline output.
     for split_pair_name in expected_split_pair_names:
-      output_dir = os.path.join(example_diff.uri,
-                                'SplitPair-' + split_pair_name)
+      output_dir = os.path.join(example_diff.uri, f'SplitPair-{split_pair_name}')
       self._validate_skew_pairs(output_dir, expect_matches)
       self._validate_skew_results(output_dir, expect_matches)
       self._validate_match_stats(output_dir)

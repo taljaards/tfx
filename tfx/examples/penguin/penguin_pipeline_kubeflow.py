@@ -13,6 +13,7 @@
 # limitations under the License.
 """Penguin example using TFX."""
 
+
 import os
 import sys
 from typing import Dict, List, Optional, Union
@@ -32,7 +33,7 @@ flags.DEFINE_bool('use_vertex', False,
                   'whether to use Vertex configuration/KFP2 orchestration')
 
 _pipeline_name = 'penguin-kubeflow'
-_pipeline_definition_file = _pipeline_name + '_pipeline.json'
+_pipeline_definition_file = f'{_pipeline_name}_pipeline.json'
 
 # Directory and data locations (uses Google Cloud Storage).
 _input_root = 'gs://<your-project-bucket>'
@@ -57,7 +58,7 @@ _pipeline_root = os.path.join(_output_root, _pipeline_name)
 _project_id = '<your-project-id>'
 _machine_type = 'n1-standard-4'
 _replica_count = 1
-_endpoint_name = 'prediction-' + _pipeline_name
+_endpoint_name = f'prediction-{_pipeline_name}'
 
 # Region to use for Dataflow jobs and AI Platform jobs.
 #   Dataflow: https://cloud.google.com/dataflow/docs/concepts/regional-endpoints
@@ -104,14 +105,14 @@ _ai_platform_serving_args = {
 # https://cloud.google.com/vertex-ai/docs/training/create-custom-job
 _vertex_job_spec = {
     'project':
-        _project_id,
+    _project_id,
     'worker_pool_specs': [{
         'machine_spec': {
             'machine_type': _machine_type,
         },
         'replica_count': _replica_count,
         'container_spec': {
-            'image_uri': 'gcr.io/tfx-oss-public/tfx:{}'.format(tfx.__version__),
+            'image_uri': f'gcr.io/tfx-oss-public/tfx:{tfx.__version__}'
         },
     }],
 }
@@ -126,26 +127,15 @@ _vertex_serving_spec = {
 # Arguments differ according to runner. DataflowRunner is only selected in gcp
 # environment.
 _beam_pipeline_args_by_runner = {
-    # TODO(b/151114974): Remove `disk_size_gb` flag after default is increased.
-    # TODO(b/156874687): Remove `machine_type` after IP addresses are no longer
-    #                    a scaling bottleneck.
-    # TODO(b/171733562): Remove `use_runner_v2` once it is the default for
-    #                    Dataflow.
     'DataflowRunner': [
         '--runner=DataflowRunner',
-        '--project=' + _project_id,
+        f'--project={_project_id}',
         '--temp_location=' + os.path.join(_pipeline_root, 'tmp'),
-        '--region=' + _gcp_region,
-
-        # Temporary overrides of defaults.
+        f'--region={_gcp_region}',
         '--disk_size_gb=50',
         '--machine_type=e2-standard-8',
         '--experiments=use_runner_v2',
-        # If you are Dataflow Prime User, please check our newest feature to
-        # help address the OOM for Batch Jobs
-        # see https://cloud.google.com/dataflow/docs/vertical-autoscaling#batch
-        '--sdk_container_image=gcr.io/tfx-oss-public/tfx:{}'.format(
-            tfx.__version__)
+        f'--sdk_container_image=gcr.io/tfx-oss-public/tfx:{tfx.__version__}',
     ],
     'DirectRunner': [
         # TODO(b/234074054): Re-enable multi_processing mode after beam is fixed
@@ -153,7 +143,7 @@ _beam_pipeline_args_by_runner = {
         # # 0 means auto-detect based on on the number of CPUs available
         # # during execution time.
         # '--direct_num_workers=0',
-    ]
+    ],
 }
 
 # Path which can be listened to by the model server.  Pusher will output the
@@ -487,19 +477,7 @@ def create_pipeline(
 def main():
   logging.set_verbosity(logging.INFO)
   flags.FLAGS(sys.argv)
-  use_dataflow = flags.FLAGS.use_dataflow
-  use_cloud_component = flags.FLAGS.use_cloud_component
-  use_aip = flags.FLAGS.use_aip
   use_vertex = flags.FLAGS.use_vertex
-
-  # Metadata config. The defaults works work with the installation of
-  # KF Pipelines using Kubeflow. If installing KF Pipelines using the
-  # lightweight deployment option, you may need to override the defaults.
-
-  if use_dataflow:
-    beam_pipeline_args = _beam_pipeline_args_by_runner['DataflowRunner']
-  else:
-    beam_pipeline_args = _beam_pipeline_args_by_runner['DirectRunner']
 
   if use_vertex:
     dag_runner = tfx.orchestration.experimental.KubeflowV2DagRunner(
@@ -511,6 +489,16 @@ def main():
             kubeflow_metadata_config=tfx.orchestration.experimental
             .get_default_kubeflow_metadata_config()))
 
+    use_cloud_component = flags.FLAGS.use_cloud_component
+    use_aip = flags.FLAGS.use_aip
+    use_dataflow = flags.FLAGS.use_dataflow
+      # Metadata config. The defaults works work with the installation of
+      # KF Pipelines using Kubeflow. If installing KF Pipelines using the
+      # lightweight deployment option, you may need to override the defaults.
+
+    beam_pipeline_args = (_beam_pipeline_args_by_runner['DataflowRunner']
+                          if use_dataflow else
+                          _beam_pipeline_args_by_runner['DirectRunner'])
     dag_runner.run(
         create_pipeline(
             pipeline_name=_pipeline_name,

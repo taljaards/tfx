@@ -59,7 +59,7 @@ _CLOUD_FIT_IMAGE = 'gcr.io/my-project-id/cloud_fit'
 
 
 def _transformed_name(key):
-  return key + '_xf'
+  return f'{key}_xf'
 
 
 def _get_tf_examples_serving_signature(model, tf_transform_output):
@@ -144,13 +144,7 @@ def preprocessing_fn(inputs):
   Returns:
     Map from string feature key to transformed feature operations.
   """
-  outputs = {}
-
-  for key in _FEATURE_KEYS:
-    # Nothing to transform for the penguin dataset. This code is just to
-    # show how the preprocessing function for Transform should be defined.
-    # We just assign original values to the transformed feature.
-    outputs[_transformed_name(key)] = inputs[key]
+  outputs = {_transformed_name(key): inputs[key] for key in _FEATURE_KEYS}
   # TODO(b/157064428): Support label transformation for Keras.
   # Do not apply label transformation as it will result in wrong evaluation.
   outputs[_transformed_name(_LABEL_KEY)] = inputs[_LABEL_KEY]
@@ -225,8 +219,7 @@ def tuner_fn(fn_args: tfx.components.FnArgs) -> tfx.components.TunerFnResult:
 
   # study_id should be the same across multiple tuner workers which starts
   # approximately at the same time.
-  study_id = 'DistributingCloudTuner_study_{}'.format(
-            datetime.datetime.now().strftime('%Y%m%d%H'))
+  study_id = f"DistributingCloudTuner_study_{datetime.datetime.now().strftime('%Y%m%d%H')}"
 
   if _CLOUD_FIT_IMAGE == 'gcr.io/my-project-id/cloud_fit':
     raise ValueError('Build your own cloud_fit image, ' +

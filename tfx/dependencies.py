@@ -58,7 +58,7 @@ def make_pipeline_sdk_required_install_packages():
           # LINT.ThenChange(tfx/workspace.bzl)
           nightly='>=1.12.0.dev',
           git_master='@git+https://github.com/google/ml-metadata@master'),
-      'packaging>=20,<21',
+      'packaging>=21,<22',
       'portpicker>=1.3.1,<2',
       'protobuf>=3.13,<4',
       'docker>=4.1,<5',
